@@ -34,7 +34,7 @@ public:
 
     static std::vector<std::string> getConnectionsList();
 
-    static inline void setConfigPath(std::string newConfigPath = _DEFAULT_DB_CONFIG_PATH) { instance().configPath_ = newConfigPath; }
+    static inline void setConfigPath(std::string newConfigPath = _DEFAULT_DB_CONFIG_PATH) { instance().configPath_ = newConfigPath; instance().updateState(); }
 
 private:
     inline static ConnConfManager& instance() { static ConnConfManager instance; return instance; }
