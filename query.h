@@ -1,3 +1,5 @@
+#pragma once
+
 #include "config.h"
 #include "logger.h"
 #include "namestranslator.h"
