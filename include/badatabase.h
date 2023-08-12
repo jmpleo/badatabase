@@ -46,7 +46,8 @@ public:
 
     bool tryConnect (std::string connectionName = "");
     bool copyFrom   (BADataBase &src, Table, CopyMod);
-    bool isConnected();
+
+    inline bool isConnected() { return checkScheme(); }
 
     std::vector <SensorLine> getSensorLines(int sensorId);
     std::vector <Zone>       getSensorZones(int sensorId);
@@ -86,15 +87,9 @@ std::string BADataBase::add(T &entity, InsertMod mod)
 {
     std::string insertedId;
 
-    if (isConnected() == false) {
-        //throw BADataBaseException("Соединение не установлено");
-        return insertedId;
-    }
-
     try {
         pqxx::work txn(conn_);
         pqxx::result res = txn.exec(Query::insertInto(entity, mod));
-
         txn.commit();
 
         insertedId = res[0][0].c_str();
@@ -107,11 +102,8 @@ std::string BADataBase::add(T &entity, InsertMod mod)
     }
     catch (const std::exception &e) {
         Logger::cout() << e.what() << std::endl;
-        //throw BADataBaseException("Не удалось выполнить вставку используя процедуру " + insertFunction);
         return insertedId;
     }
 }
-
-
 
 } // end namespace badatabase

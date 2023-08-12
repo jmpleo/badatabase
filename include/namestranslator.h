@@ -29,7 +29,7 @@ public:
 
     inline static str insertFunc(Table, InsertMod);
 
-    inline static bool check(str name);
+    inline static bool checkTable(str name);
 
     template <typename T> inline static Table whatEnity(T &enity);
 };
@@ -46,7 +46,7 @@ inline Table NamesTranslator::whatEnity(T &entity)
 }
 
 
-inline bool NamesTranslator::check(str name)
+inline bool NamesTranslator::checkTable(str name)
 {
     if (name == "sweepdatalorenz") return true;
     if (name == "sensorslines")    return true;
@@ -55,7 +55,6 @@ inline bool NamesTranslator::check(str name)
     if (name == "zones")           return true;
     return false;
 }
-
 
 inline std::string NamesTranslator::insertFunc(Table table, InsertMod mod)
 {

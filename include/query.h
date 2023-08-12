@@ -35,7 +35,7 @@ public:
     Query(const Query&) = delete;
     Query& operator=(const Query&) = delete;
 
-    static inline void setMainSQLPath(std::string newMaiSQLPath) { instance().mainSQL_ = readMainSQL(newMaiSQLPath); }
+    static inline void setMainSQLPath(std::string newMaiSQLPath = _DEFAULT_MAINSQL_PATH ) { instance().mainSQL_ = readMainSQL(newMaiSQLPath); }
 
 private:
     template <typename Entity>

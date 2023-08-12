@@ -2,6 +2,7 @@
 
 
 #include "logger.h"
+#include "config.h"
 #include <map>
 #include <nlohmann/detail/iterators/iteration_proxy.hpp>
 #include <nlohmann/detail/meta/type_traits.hpp>

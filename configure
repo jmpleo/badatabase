@@ -1,9 +1,11 @@
 #!/bin/bash
 
-mkdir -p ./include
-cp *.h ./include
+PREFIX=$(pwd)
+
+mkdir -p ./include && \
+cp *.h ./include && \
 cp -R batypes ./include
 
 cmake -B build \
-      -D__DB_CONFIG_PATH="$(pwd)/config/configDB.json" \
-      -D__MAINSQL_PATH="$(pwd)/sql/main.sql"
+      -D__DB_CONFIG_PATH="$PREFIX/config/configDB.json" \
+      -D__MAINSQL_PATH="$PREFIX/sql/main.sql"
