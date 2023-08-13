@@ -34,10 +34,25 @@ if (ConnManager::touch(<название соединения>[, <количес
 }
 ```
 
+После `ConnManager` удерживает соединение и вызов метода `touch()` проверит доступность соединения: если оно будет недоступно, то будет предпринята попытка повторного соединения 
+
+```   c++
+if (ConnManager::touch(<название соединения>[, <количество попыток>])) {
+    /// действия с соединением
+}
+
+// ...
+
+if (ConnManager::touch([<количество попыток>])) {
+    /// действия с соединением
+}
+
+```
+
 Чтобы использовать это соединение, необходимо использовать метод `conn()`, возвращающий ссылку на `BADataBase`.
 
 ```c++
-if (ConnManager::touch(<название соединения>[, <количество попыток>])) {
+if (ConnManager::touch()) {
     Zone z;
     ConnManager::conn().addZone(z);
 }
@@ -88,11 +103,11 @@ sensorListTime(int sensorId, string startTime="");
 ```c++
 BADataBase conn(<название соединения>);
 
-if (ConnManager::touch(сonn [,<количество попыток>])) {
+if (ConnManager::connect(сonn [,<количество попыток>])) {
     Zone z;
     conn.addZone(z);
     
-    // ConnManager::conn() - не изменяется после вызова touch(BADataBase&)
+    // ConnManager::conn() - не изменяется после вызова ConnManager::connect(BADataBase&)
 }
 ```
 
