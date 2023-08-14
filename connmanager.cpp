@@ -13,19 +13,25 @@ ConnManager::ConnManager()
 
 ConnManager::~ConnManager() {}
 
-bool ConnManager::connect(std::string connName, size_t attempt)
+bool ConnManager::touch(std::string connName, size_t attempt)
 {
+    // Текущее соединение все еще доступно
+    if (connName.empty() && available()) {
+        return true;
+    }
+    connName = (connName.empty() ? instance().name() : connName);
+
     while (attempt--) {
-        Logger::cout() << "Попытка соединения к " + name() << std::endl;
-        if (conn().tryConnect(connName)) {
-            device() = conn().getBADeviceInfo();
+        Logger::cout() << "Попытка соединения к " + connName << std::endl;
+        if (instance().curConn_.tryConnect(connName)) {
+            instance().curDevice_ = instance().curConn_.getBADeviceInfo();
             return true;
         }
     }
     return false;
 }
 
-bool ConnManager::connect(BADataBase& conn, size_t attempt)
+bool ConnManager::touch(BADataBase& conn, size_t attempt)
 {
     while (attempt--) {
         Logger::cout() << "Попытка соединения к " + conn.getConnectionName() << std::endl;

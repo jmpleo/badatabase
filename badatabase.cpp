@@ -128,10 +128,12 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 
         srcTxn.exec(Query::selectCursorOn(table));
 
-        pqxx::row row;
+        pqxx::result res;
+        std::string record;
 
-        while (row = srcTxn.exec1(Query::fetchAsCompositeFromCurrentCursor(table)), !row.empty()) {
-            dstTxn.exec(Query::insertInto(table, row[0].c_str(), mod));
+        while (res = srcTxn.exec(Query::fetchAsCompositeFromCurrentCursor(table)), !res.empty()) {
+            record = res[0][0].c_str();
+            dstTxn.exec(Query::insertInto(table, record, mod));
         }
         srcTxn.commit();
         dstTxn.commit();
@@ -180,12 +182,12 @@ BADeviceInfo BADataBase::getBADeviceInfo()
     BADeviceInfo device;
 
     try {
-        pqxx::row row = pqxx::nontransaction(conn_).exec1(Query::selectFrom(Table::Device));
+        pqxx::result res = pqxx::nontransaction(conn_).exec(Query::selectFrom(Table::Device));
 
-        device.deviceId = row["deviceid"].c_str();
-        device.deviceName = row["devicename"].c_str();
-        device.adcFreq = row["adcfreq"].as<long>();
-        device.startDiscret = row["startdiscret"].as<int>();
+        device.deviceId = res[0]["deviceid"].c_str();
+        device.deviceName = res[0]["devicename"].c_str();
+        device.adcFreq = res[0]["adcfreq"].as<long>();
+        device.startDiscret = res[0]["startdiscret"].as<int>();
 
         ConnConfManager::setDevice(connName_, device.deviceId);
 
@@ -208,12 +210,13 @@ std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
 
     try {
         pqxx::work txn(conn_);
-        txn.exec(Query::selectCursorOnLines(sensorId));
+        pqxx::result res = txn.exec(Query::selectCursorOnLines(sensorId));
 
         pqxx::row row;
 
-        while (row = txn.exec1(Query::fetchFromCurrentCursor(Table::Line)), !row.empty()) {
+        while (res = txn.exec(Query::fetchFromCurrentCursor(Table::Line)), !res.empty()) {
 
+            row = res[0];
             SensorLine l;
 
             l.direct = row["direct"].as<int>();
@@ -249,12 +252,13 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 
     try {
         pqxx::work txn(conn_);
-        txn.exec(Query::selectCursorOnZones(sensorId));
+        pqxx::result res = txn.exec(Query::selectCursorOnZones(sensorId));
 
         pqxx::row row;
 
-        while (row = txn.exec1(Query::fetchFromCurrentCursor(Table::Zone)), !row.empty()) {
+        while (res = txn.exec(Query::fetchFromCurrentCursor(Table::Zone)), !res.empty()) {
 
+            row = res[0];
             Zone z;
 
             z.direct = row["direct"].as<int>();
@@ -299,11 +303,11 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
 
     try {
         pqxx::work txn(conn_);
-        txn.exec(Query::selectCursorOn(Table::Sensor));
+        pqxx::result res = txn.exec(Query::selectCursorOn(Table::Sensor));
         pqxx::row row;
 
-        while (row = txn.exec1(Query::fetchFromCurrentCursor(Table::Sensor)), !row.empty()) {
-
+        while (res = txn.exec(Query::fetchFromCurrentCursor(Table::Sensor)), !res.empty()) {
+            row = res[0];
             SensorDB s;
 
             s.name = row["sensorname"].c_str();
@@ -347,12 +351,16 @@ SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string tim
     SweepLorenzResult sw;
 
     try {
-        pqxx::row row = pqxx::nontransaction(conn_).exec1(Query::selectFrom(Table::Sweep)
+        pqxx::result res = pqxx::nontransaction(conn_).exec(Query::selectFrom(Table::Sweep)
             + " WHERE sensorid = "+ pqxx::to_string(sensorId)
             + " AND sweeptime = "+ Query::to_quoted(time)
         );
 
-        if (!row.empty()) {
+        pqxx::row row;
+
+        if (!res.empty()) {
+
+            row = res[0];
 
             sw.sensorId = row["sensorid"].as<int>();
             sw.sensorName = row["sensorname"].as<std::string>();
