@@ -28,7 +28,7 @@ public:
     static inline BADeviceInfo& device() { return instance().curDevice_; }
 
 private:
-    static inline ConnManager& instance() { static ConnManager instance; return instance; }
+    static ConnManager& instance() { static ConnManager instance; return instance; }
     static bool connect(std::string, size_t);
 
     ConnManager();

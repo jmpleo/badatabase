@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstddef>
 #include <exception>
+#include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <pqxx/array.hxx>
 #include <pqxx/connection.hxx>
@@ -31,23 +32,17 @@ BADataBase::~BADataBase() {}
 
 BADataBase::BADataBase(std::string connName)
     : connName_(connName)
-    , conn_()
+    , conn_(nullptr)
 {
 }
 
-BADataBase::BADataBase(BADataBase&& other)
-    : connName_(std::move(other.connName_))
-    , conn_(std::move(other.conn_))
-{
-}
-
-BADataBase BADataBase::operator=(BADataBase&& other) { return BADataBase(std::move(other)); }
+//BADataBase BADataBase::operator=(BADataBase&& other) { return BADataBase(std::move(other)); }
 
 bool BADataBase::tryConnect(std::string connectionName)
 {
     try {
         connName_ = connectionName.empty() ? connName_ : connectionName;
-        conn_ = pqxx::connection(ConnConfManager::getConnectionOptions(connName_));
+        conn_ = std::make_unique<pqxx::connection>(ConnConfManager::getConnectionOptions(connName_));
 
         //if (checkScheme() || setScheme()) {
         if (setScheme()) {
@@ -71,11 +66,11 @@ bool BADataBase::checkScheme()
 {
     try {
         pqxx::result
-            tables = pqxx::nontransaction(conn_).exec(
+            tables = pqxx::nontransaction(*conn_).exec(
                 " SELECT table_name FROM information_schema.tables"
                 " WHERE table_schema = 'public'"
             ),
-            functions = pqxx::nontransaction(conn_).exec(
+            functions = pqxx::nontransaction(*conn_).exec(
                 " SELECT routine_name FROM information_schema.routines"
                 " WHERE routine_schema = 'public'"
             );
@@ -103,7 +98,7 @@ bool BADataBase::checkScheme()
 bool BADataBase::setScheme()
 {
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         txn.exec(Query::mainSQL());
         txn.commit();
         Logger::cout() << "Схема базы данных была успешно обновлена" << std::endl;
@@ -124,7 +119,7 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
     }
 
     try {
-        pqxx::work dstTxn(conn_), srcTxn(src.conn_);
+        pqxx::work dstTxn(*conn_), srcTxn(*src.conn_);
 
         srcTxn.exec(Query::selectCursorOn(table));
 
@@ -153,7 +148,7 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 bool BADataBase::del(std::string prKey, Table table)
 {
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::deleteFrom(table, prKey));
 
         txn.commit();
@@ -182,7 +177,7 @@ BADeviceInfo BADataBase::getBADeviceInfo()
     BADeviceInfo device;
 
     try {
-        pqxx::result res = pqxx::nontransaction(conn_).exec(Query::selectFrom(Table::Device));
+        pqxx::result res = pqxx::nontransaction(*conn_).exec(Query::selectFrom(Table::Device));
 
         device.deviceId = res[0]["deviceid"].c_str();
         device.deviceName = res[0]["devicename"].c_str();
@@ -209,7 +204,7 @@ std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
     std::vector <SensorLine> lines;
 
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::selectCursorOnLines(sensorId));
 
         pqxx::row row;
@@ -251,7 +246,7 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
     std::vector <Zone> zones;
 
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::selectCursorOnZones(sensorId));
 
         pqxx::row row;
@@ -302,7 +297,7 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
     std::vector <SensorDB> sensors;
 
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::selectCursorOn(Table::Sensor));
         pqxx::row row;
 
@@ -351,7 +346,7 @@ SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string tim
     SweepLorenzResult sw;
 
     try {
-        pqxx::result res = pqxx::nontransaction(conn_).exec(Query::selectFrom(Table::Sweep)
+        pqxx::result res = pqxx::nontransaction(*conn_).exec(Query::selectFrom(Table::Sweep)
             + " WHERE sensorid = "+ pqxx::to_string(sensorId)
             + " AND sweeptime = "+ Query::to_quoted(time)
         );
@@ -394,7 +389,7 @@ BADataBase::getAllSweepByTime(std::string startTime, const bool includes)
     std::vector<std::pair<int, std::string>> ptime;
 
     try {
-        pqxx::result res = pqxx::nontransaction(conn_).exec(
+        pqxx::result res = pqxx::nontransaction(*conn_).exec(
             "SELECT sensorid, sweeptime FROM " + nt::name(Table::Sweep) + (
                 startTime.empty()
                 ? ""
@@ -424,7 +419,7 @@ BADataBase::sensorListTime(int sensorId, std::string startTime)
     std::vector<std::pair<int, std::string>> ptime;
 
     try {
-        pqxx::result res = pqxx::nontransaction(conn_).exec(
+        pqxx::result res = pqxx::nontransaction(*conn_).exec(
             " SELECT sensorid, sweeptime FROM " + nt::name(Table::Sweep)
             + " WHERE sensorid = " + pqxx::to_string(sensorId) + (
                 startTime.empty()

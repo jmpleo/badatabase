@@ -9,30 +9,28 @@
 
 namespace badatabase {
 
-#define INLINE_STR inline std::string
-
 class Query
 {
 using str = std::string;
 using nt = NamesTranslator;
 
 public:
-    static INLINE_STR mainSQL() { return instance().mainSQL_; }
+    static inline str mainSQL() { return instance().mainSQL_; }
 
-    static INLINE_STR selectFrom(Table table) { return "SELECT * FROM " + nt::name(table); }
+    static inline str selectFrom(Table table) { return "SELECT * FROM " + nt::name(table); }
 
-    static INLINE_STR deleteFrom(Table, str prKey);
-    static INLINE_STR selectCursorOn(Table);
-    static INLINE_STR fetchFromCurrentCursor(Table);
-    static INLINE_STR fetchAsCompositeFromCurrentCursor(Table);
+    static inline str deleteFrom(Table, str prKey);
+    static inline str selectCursorOn(Table);
+    static inline str fetchFromCurrentCursor(Table);
+    static inline str fetchAsCompositeFromCurrentCursor(Table);
 
     template <typename Entity>
-    static INLINE_STR insertInto(Entity&, InsertMod);
-    static INLINE_STR insertInto(Table, str record, InsertMod);
-    static INLINE_STR selectCursorOnZones(int sensorId);
-    static INLINE_STR selectCursorOnLines(int sensorId);
+    static inline str insertInto(Entity&, InsertMod);
+    static inline str insertInto(Table, str record, InsertMod);
+    static inline str selectCursorOnZones(int sensorId);
+    static inline str selectCursorOnLines(int sensorId);
 
-    static INLINE_STR to_quoted (str s) { return "'" + s + "'"; }
+    static inline str to_quoted (str s) { return "'" + s + "'"; }
 
     Query(const Query&) = delete;
     Query& operator=(const Query&) = delete;
@@ -41,8 +39,8 @@ public:
 
 private:
     template <typename Entity>
-    static INLINE_STR prepareQueryParam(Entity&)    { return ""; }
-    static INLINE_STR exec(str func, str paramLine) { return "SELECT " + func + "(" + paramLine + ")"; }
+    static inline str prepareQueryParam(Entity&)    { return ""; }
+    static inline str exec(str func, str paramLine) { return "SELECT " + func + "(" + paramLine + ")"; }
 
 private:
     inline static Query& instance() { static Query instance; return instance; }

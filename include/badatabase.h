@@ -23,13 +23,12 @@ class BADataBase
 public:
     BADataBase() = delete;
     BADataBase(std::string);
-    BADataBase(BADataBase&&);
+    BADataBase(BADataBase&&) = delete;
     BADataBase(BADataBase const&) = delete;
     BADataBase operator = (BADataBase const&) = delete;
     BADataBase operator = (BADataBase&&);
     ~BADataBase();
 
-    //inline bool        isConnected()       const { return conn_.is_open(); }
     inline std::string getConnectionName() const { return connName_; }
 
     inline std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
@@ -69,26 +68,26 @@ public:
     //bool JsonFileToBAInfo(const char* jsonFileName);
 
 
-private:
+//private:
     template <typename Entity> std::string add(Entity&, InsertMod);
     bool del(std::string id, Table);
 
     bool checkScheme();
     bool setScheme();
 
-private:
+//private:
     std::string connName_;
-    pqxx::connection conn_;
+    std::unique_ptr<pqxx::connection> conn_;
 };
 
 
 template <typename T>
 std::string BADataBase::add(T &entity, InsertMod mod)
 {
-    std::string insertedId;
+    std::string insertedId = "0";
 
     try {
-        pqxx::work txn(conn_);
+        pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::insertInto(entity, mod));
         txn.commit();
 
