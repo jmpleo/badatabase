@@ -1,4 +1,4 @@
-#include "sensor.h"
+#include "batypes/sensor.h"
 
 #include <math.h>
 
