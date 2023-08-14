@@ -181,8 +181,8 @@ BADeviceInfo BADataBase::getBADeviceInfo()
 
         device.deviceId = res[0]["deviceid"].c_str();
         device.deviceName = res[0]["devicename"].c_str();
-        device.adcFreq = res[0]["adcfreq"].as<long>();
-        device.startDiscret = res[0]["startdiscret"].as<int>();
+        device.adcFreq = res[0]["adcfreq"].as<long>(0);
+        device.startDiscret = res[0]["startdiscret"].as<int>(0);
 
         ConnConfManager::setDevice(connName_, device.deviceId);
 
@@ -214,19 +214,19 @@ std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
             row = res[0];
             SensorLine l;
 
-            l.direct = row["direct"].as<int>();
-            l.lineId = row["lineid"].as<int>();
+            l.direct = row["direct"].as<int>(0);
+            l.lineId = row["lineid"].as<int>(0);
             l.lineName = row["linename"].c_str();
-            l.sensorId = row["sensorid"].as<int>();
-            l.lineType = row["linetype"].as<int>();
-            l.defCoeff = row["defcoeff"].as<float>();
-            l.endPoint = row["endpoint"].as<int>();
-            l.mhzTemp20 = row["mhztemp20"].as<float>();
-            l.tempCoeff = row["tempcoeff"].as<float>();
-            l.auxLineId = row["auxlineid"].as<int>();
-            l.startPoint = row["startpoint"].as<int>();
-            l.lengthPoint = row["lengthpoints"].as<int>();
-            l.lengthMeters = row["lengthmeters"].as<float>();
+            l.sensorId = row["sensorid"].as<int>(0);
+            l.lineType = row["linetype"].as<int>(0);
+            l.defCoeff = row["defcoeff"].as<float>(0.);
+            l.endPoint = row["endpoint"].as<int>(0);
+            l.mhzTemp20 = row["mhztemp20"].as<float>(0.);
+            l.tempCoeff = row["tempcoeff"].as<float>(0.);
+            l.auxLineId = row["auxlineid"].as<int>(0);
+            l.startPoint = row["startpoint"].as<int>(0);
+            l.lengthPoint = row["lengthpoints"].as<int>(0);
+            l.lengthMeters = row["lengthmeters"].as<float>(0.);
             l.lineFullName = row["linefullname"].c_str();
 
             lines.push_back(l);
@@ -256,29 +256,29 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
             row = res[0];
             Zone z;
 
-            z.direct = row["direct"].as<int>();
-            z.zoneId = row["zoneid"].as<int>();
-            z.lineId = row["lineid"].as<int>();
-            z.sensorId = row["sensorid"].as<int>();
-            z.zoneType = row["zonetype"].as<int>();
+            z.direct = row["direct"].as<int>(0);
+            z.zoneId = row["zoneid"].as<int>(0);
+            z.lineId = row["lineid"].as<int>(0);
+            z.sensorId = row["sensorid"].as<int>(0);
+            z.zoneType = row["zonetype"].as<int>(0);
             z.deviceId = row["deviceid"].c_str();
             z.zoneName = row["zonename"].c_str();
 
             z.startInArea = Zone::PointArea{
-                row["startinareax"].as<float>(),
-                row["startinareay"].as<float>()
+                row["startinareax"].as<float>(0.),
+                row["startinareay"].as<float>(0.)
             };
 
             z.endInArea = Zone::PointArea{
-                row["endinareax"].as<float>(),
-                row["endinareay"].as<float>()
+                row["endinareax"].as<float>(0.),
+                row["endinareay"].as<float>(0.)
             };
 
-            z.endInLine = row["endinline"].as<float>();
+            z.endInLine = row["endinline"].as<float>(0.);
             z.zoneFullName = row["zonefullname"].c_str();
-            z.startInLine = row["startinline"].as<float>();
-            z.lengthInLine = row["lengthinline"].as<float>();
-            z.lengthZoneInArea = row["lengthzoneinarea"].as<float>();
+            z.startInLine = row["startinline"].as<float>(0.);
+            z.lengthInLine = row["lengthinline"].as<float>(0.);
+            z.lengthZoneInArea = row["lengthzoneinarea"].as<float>(0.);
 
             zones.push_back(z);
         }
@@ -307,24 +307,24 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
 
             s.name = row["sensorname"].c_str();
             s.comment = row["comment"].c_str();
-            s.Average = row["average"].as<int>();
-            s.sensorId = row["sensorid"].as<int>();
-            s.freqStart = row["freqstart"].as<float>();
+            s.Average = row["average"].as<int>(0);
+            s.sensorId = row["sensorid"].as<int>(0);
+            s.freqStart = row["freqstart"].as<float>(0.);
             s.fname = row["sensorfname"].c_str();
-            s.flagSensorOn = row["flagsensoron"].as<bool>();
+            s.flagSensorOn = row["flagsensoron"].as<bool>(false);
             s.extraCmdScript = row["extracmdscript"].c_str();
-            s.flagUsingSwitch = row["flagusingswith"].as<bool>();
+            s.flagUsingSwitch = row["flagusingswith"].as<bool>(false);
             s.swithSensorName = row["switchsensorname"].c_str();
-            s.freqStep = row["freqstep"].as<float>();
-            s.freqStop = row["freqstop"].as<float>();
-            s.sensorLength = row["sensorlength"].as<int>();
-            s.sensorPointLength = row["sensorpointlength"].as<int>();
+            s.freqStep = row["freqstep"].as<float>(0.);
+            s.freqStop = row["freqstop"].as<float>(0.);
+            s.sensorLength = row["sensorlength"].as<int>(0);
+            s.sensorPointLength = row["sensorpointlength"].as<int>(0);
             //sensorstartpoint
             //sensorendpoint
-            s.cwAtt = row["cwatt"].as<int>();
-            s.apdGain = row["adpgain"].as<int>();
-            s.pulseGain = row["pulsegain"].as<int>();
-            s.pulseLength = row["pulselength"].as<int>();
+            s.cwAtt = row["cwatt"].as<int>(0);
+            s.apdGain = row["adpgain"].as<int>(0);
+            s.pulseGain = row["pulsegain"].as<int>(0);
+            s.pulseLength = row["pulselength"].as<int>(0);
 
             s.snrLines = getSensorLines(s.sensorId);
             s.snrZones = getSensorZones(s.sensorId);
@@ -357,10 +357,10 @@ SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string tim
 
             row = res[0];
 
-            sw.sensorId = row["sensorid"].as<int>();
+            sw.sensorId = row["sensorid"].as<int>(0);
             sw.sensorName = row["sensorname"].as<std::string>();
             sw.sweepTime = row["sweeptime"].as<std::string>();
-            sw.shc = row["shc"].as<float>();
+            sw.shc = row["shc"].as<float>(0.);
 
             pqxx::array_parser parser = row["datalorenz"].as_array();
 
@@ -399,7 +399,7 @@ BADataBase::getAllSweepByTime(std::string startTime, const bool includes)
 
         for (auto row : res) {
 
-            int id = row["sensorId"].as<int>();
+            int id = row["sensorId"].as<int>(0);
             std::string time = row["sweepTime"].as<std::string>();
 
             ptime.push_back({ id, time });
@@ -429,7 +429,7 @@ BADataBase::sensorListTime(int sensorId, std::string startTime)
         );
 
         for (auto row : res) {
-            int id = row["sensorId"].as<int>();
+            int id = row["sensorId"].as<int>(0);
             std::string time = row["sweepTime"].as<std::string>();
             ptime.push_back({ id, time });
         }
