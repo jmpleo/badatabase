@@ -133,3 +133,9 @@ vector<string> getConnectionsList();
 void setConfigPath(string newConfigPath = _DEFAULT_DB_CONFIG_PATH);
 ```
 
+Чтобы получить доступ к менеджеру файла конфигурации текущего соединения необходимо вызвать метод `ConnManage::conf()`.  Если это необходимо сделат через любое другое соединение, то обратиться к статическому полю `BABase` : 
+
+```cpp
+string deviceId = BADataBase::config.getDeice("myConnection");
+```
+
