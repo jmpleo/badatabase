@@ -72,6 +72,11 @@ std::string BADataBase::add(T &entity, InsertMod mod)
 {
     std::string insertedId = "0";
 
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return insertedId;
+    }
+
     try {
         pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::insertInto(entity, mod));

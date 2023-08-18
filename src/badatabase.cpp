@@ -30,6 +30,11 @@ using namespace batypes;
 
 bool BADataBase::checkScheme()
 {
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return false;
+    }
+
     try {
         pqxx::result
             tables = pqxx::nontransaction(*conn_).exec(
@@ -63,6 +68,11 @@ bool BADataBase::checkScheme()
 
 bool BADataBase::setScheme()
 {
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return false;
+    }
+
     try {
         pqxx::work txn(*conn_);
         txn.exec(Query::mainSQL);
@@ -81,6 +91,11 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 {
     if (getBADeviceInfoId() != src.getBADeviceInfoId()) {
         Logger::cout() << "Устройства соединений не совпадают" << std::endl;
+        return false;
+    }
+
+    if (conn_ == nullptr || src.conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
         return false;
     }
 
@@ -113,6 +128,11 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 
 bool BADataBase::del(std::string prKey, Table table)
 {
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return false;
+    }
+
     try {
         pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::deleteFrom(table, prKey));
@@ -142,6 +162,11 @@ BADeviceInfo BADataBase::getBADeviceInfo()
 {
     BADeviceInfo device;
 
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return device;
+    }
+
     try {
         pqxx::result res = pqxx::nontransaction(*conn_).exec(Query::selectFrom(Table::Device));
 
@@ -168,6 +193,11 @@ BADeviceInfo BADataBase::getBADeviceInfo()
 std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
 {
     std::vector <SensorLine> lines;
+
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return lines;
+    }
 
     try {
         pqxx::work txn(*conn_);
@@ -210,6 +240,11 @@ std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
 std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 {
     std::vector <Zone> zones;
+
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return zones;
+    }
 
     try {
         pqxx::work txn(*conn_);
@@ -263,6 +298,11 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
 {
     std::vector <SensorDB> sensors;
 
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return sensors;
+    }
+
     try {
         pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::selectCursorOn(Table::Sensor));
@@ -312,6 +352,11 @@ SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string tim
 {
     SweepLorenzResult sw;
 
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return sw;
+    }
+
     try {
         pqxx::result res = pqxx::nontransaction(*conn_).exec(Query::selectFrom(Table::Sweep)
             + " WHERE sensorid = "+ pqxx::to_string(sensorId)
@@ -355,6 +400,11 @@ BADataBase::getAllSweepByTime(std::string startTime, const bool includes)
 {
     std::vector<std::pair<int, std::string>> ptime;
 
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return ptime;
+    }
+
     try {
         pqxx::result res = pqxx::nontransaction(*conn_).exec(
             "SELECT sensorid, sweeptime FROM " + nt::name(Table::Sweep) + (
@@ -384,6 +434,11 @@ std::vector <std::pair <int, std::string>>
 BADataBase::sensorListTime(int sensorId, std::string startTime)
 {
     std::vector<std::pair<int, std::string>> ptime;
+
+    if (conn_ == nullptr) {
+        Logger::cout() << "Cоединениe не установлено" << std::endl;
+        return ptime;
+    }
 
     try {
         pqxx::result res = pqxx::nontransaction(*conn_).exec(

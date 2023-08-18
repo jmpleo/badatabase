@@ -1034,7 +1034,7 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
   z.zoneid := (
-    CASE WHEN z.zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
+    CASE WHEN z.zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
       nextval('zones_zoneid_seq')
     ELSE
       z.zoneid
