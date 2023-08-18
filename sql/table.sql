@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS sweepdatalorenz (
 
 CREATE TABLE IF NOT EXISTS zones (
     zoneid SERIAL PRIMARY KEY,
+    extzoneid INTEGER NOT NULL DEFAULT 0,
     lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
     deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),

@@ -224,6 +224,7 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 
             z.direct = row["direct"].as<int>(0);
             z.zoneId = row["zoneid"].as<int>(0);
+            z.extZoneId = row["extzonid"].as<int>(0);
             z.lineId = row["lineid"].as<int>(0);
             z.sensorId = row["sensorid"].as<int>(0);
             z.zoneType = row["zonetype"].as<int>(0);

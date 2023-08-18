@@ -10,6 +10,7 @@ struct Zone
     struct PointArea { float x; float y; };
 
     int                 zoneId; // идентификатор зоны в БД
+    int              extZoneId; // внешний идентификатор зоны в БД
     int                 lineId; // идентификатор линии
     int               sensorId; // идентификатор сенсора
     std::string       deviceId; // идентификатор устройства

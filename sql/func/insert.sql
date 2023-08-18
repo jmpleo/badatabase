@@ -967,6 +967,7 @@ CREATE OR REPLACE FUNCTION insert_zones_without_update (
   p_endinline DOUBLE PRECISION,
   p_lengthinline DOUBLE PRECISION,
   p_zoneid INTEGER DEFAULT NULL,
+  p_extzoneid INTEGER DEFAULT 0,
   p_zonefullname VARCHAR(128) DEFAULT ''
 )
 RETURNS INTEGER AS $$
@@ -982,6 +983,7 @@ BEGIN
   );
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -999,6 +1001,7 @@ BEGIN
     lengthinline
   ) VALUES (
     p_zoneid,
+    p_extzoneid,
     p_lineid,
     p_sensorid,
     p_deviceid,
@@ -1039,6 +1042,7 @@ BEGIN
   );
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1056,6 +1060,7 @@ BEGIN
     lengthinline
   ) VALUES (
     z.zoneid,
+    z.extzoneid,
     z.lineid,
     z.sensorid,
     z.deviceid,
@@ -1097,6 +1102,7 @@ CREATE OR REPLACE FUNCTION insert_zones_with_update (
   p_endinline DOUBLE PRECISION,
   p_lengthinline DOUBLE PRECISION,
   p_zoneid INTEGER DEFAULT NULL,
+  p_extzoneid INTEGER DEFAULT 0,
   p_zonefullname VARCHAR(128) DEFAULT ''
 )
 RETURNS INTEGER AS $$
@@ -1112,6 +1118,7 @@ BEGIN
 
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1129,6 +1136,7 @@ BEGIN
     lengthinline
   ) VALUES (
     p_zoneid,
+    p_extzoneid,
     p_lineid,
     p_sensorid,
     p_deviceid,
@@ -1149,6 +1157,7 @@ BEGIN
     DO UPDATE
       SET
         zoneid = p_zoneid,
+        extzoneid = p_extzoneid,
         lineid = p_lineid,
         sensorid = p_sensorid,
         deviceid = p_deviceid,
@@ -1186,6 +1195,7 @@ BEGIN
 
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1203,6 +1213,7 @@ BEGIN
     lengthinline
   ) VALUES (
     z.zoneid,
+    z.extzoneid,
     z.lineid,
     z.sensorid,
     z.deviceid,
@@ -1223,6 +1234,7 @@ BEGIN
     DO UPDATE
       SET
         zoneid = z.zoneid,
+        extzoneid = z.extzoneid,
         lineid = z.lineid,
         sensorid = z.sensorid,
         deviceid = z.deviceid,

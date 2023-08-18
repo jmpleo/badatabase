@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS sweepdatalorenz (
 
 CREATE TABLE IF NOT EXISTS zones (
     zoneid SERIAL PRIMARY KEY,
+    extzoneid INTEGER NOT NULL DEFAULT 0,
     lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
     deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),
@@ -89,6 +90,11 @@ CREATE TABLE IF NOT EXISTS zones (
     lengthinline DOUBLE PRECISION NOT NULL
 );
 
+ALTER TABLE zones
+ADD COLUMN IF NOT EXISTS extzoneid INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE sweepdatalorenz
+ADD COLUMN IF NOT EXISTS shc REAL NOT NULL DEFAULT 0;
 --DROP FUNCTION IF EXISTS fetch_sensorslines (REFCURSOR);
 CREATE OR REPLACE FUNCTION fetch_sensorslines (cur REFCURSOR)
 RETURNS SETOF sensorslines AS $$
@@ -1106,6 +1112,7 @@ CREATE OR REPLACE FUNCTION insert_zones_without_update (
   p_endinline DOUBLE PRECISION,
   p_lengthinline DOUBLE PRECISION,
   p_zoneid INTEGER DEFAULT NULL,
+  p_extzoneid INTEGER DEFAULT 0,
   p_zonefullname VARCHAR(128) DEFAULT ''
 )
 RETURNS INTEGER AS $$
@@ -1121,6 +1128,7 @@ BEGIN
   );
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1138,6 +1146,7 @@ BEGIN
     lengthinline
   ) VALUES (
     p_zoneid,
+    p_extzoneid,
     p_lineid,
     p_sensorid,
     p_deviceid,
@@ -1178,6 +1187,7 @@ BEGIN
   );
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1195,6 +1205,7 @@ BEGIN
     lengthinline
   ) VALUES (
     z.zoneid,
+    z.extzoneid,
     z.lineid,
     z.sensorid,
     z.deviceid,
@@ -1236,6 +1247,7 @@ CREATE OR REPLACE FUNCTION insert_zones_with_update (
   p_endinline DOUBLE PRECISION,
   p_lengthinline DOUBLE PRECISION,
   p_zoneid INTEGER DEFAULT NULL,
+  p_extzoneid INTEGER DEFAULT 0,
   p_zonefullname VARCHAR(128) DEFAULT ''
 )
 RETURNS INTEGER AS $$
@@ -1251,6 +1263,7 @@ BEGIN
 
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1268,6 +1281,7 @@ BEGIN
     lengthinline
   ) VALUES (
     p_zoneid,
+    p_extzoneid,
     p_lineid,
     p_sensorid,
     p_deviceid,
@@ -1288,6 +1302,7 @@ BEGIN
     DO UPDATE
       SET
         zoneid = p_zoneid,
+        extzoneid = p_extzoneid,
         lineid = p_lineid,
         sensorid = p_sensorid,
         deviceid = p_deviceid,
@@ -1325,6 +1340,7 @@ BEGIN
 
   INSERT INTO zones (
     zoneid,
+    extzoneid,
     lineid,
     sensorid,
     deviceid,
@@ -1342,6 +1358,7 @@ BEGIN
     lengthinline
   ) VALUES (
     z.zoneid,
+    z.extzoneid,
     z.lineid,
     z.sensorid,
     z.deviceid,
@@ -1362,6 +1379,7 @@ BEGIN
     DO UPDATE
       SET
         zoneid = z.zoneid,
+        extzoneid = z.extzoneid,
         lineid = z.lineid,
         sensorid = z.sensorid,
         deviceid = z.deviceid,
