@@ -1,7 +1,7 @@
 #pragma once
 
+#include "babase.h"
 #include "batypes.h"
-#include "connconfmanager.h"
 #include "logger.h"
 #include "namestranslator.h"
 #include "query.h"
@@ -13,40 +13,30 @@
 
 namespace badatabase {
 
+using namespace babase;
 using namespace batypes;
+
 using nt = NamesTranslator;
 using CopyMod = InsertMod;
 
-
-class BADataBase
+class BADataBase : public BABase
 {
 public:
-    BADataBase() = delete;
-    BADataBase(std::string);
-    BADataBase(BADataBase&&) = delete;
-    BADataBase(BADataBase const&) = delete;
-    BADataBase operator = (BADataBase const&) = delete;
-    BADataBase operator = (BADataBase&&);
-    ~BADataBase();
+    BADataBase(std::string connName) : BABase(connName) {}
 
-    inline std::string getConnectionName() const { return connName_; }
+    std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
 
-    inline std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
+    int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { return std::stoi(add(z, mod)); }
+    int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { return std::stoi(add(s, mod)); }
+    int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { return std::stoi(add(l, mod)); }
+    int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { return std::stoi(add(sw, mod)); }
 
-    inline int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { return std::stoi(add(z, mod)); }
-    inline int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { return std::stoi(add(s, mod)); }
-    inline int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { return std::stoi(add(l, mod)); }
-    inline int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { return std::stoi(add(sw, mod)); }
+    bool delLine  (int lineId)   { return del(std::to_string(lineId),   Table::Line);   }
+    bool delZone  (int zoneId)   { return del(std::to_string(zoneId),   Table::Zone);   }
+    bool delSweep (int sweepId)  { return del(std::to_string(sweepId),  Table::Sweep);  }
+    bool delSensor(int sensorId) { return del(std::to_string(sensorId), Table::Sensor); }
 
-    inline bool delLine  (int lineId)   { return del(std::to_string(lineId),   Table::Line);   }
-    inline bool delZone  (int zoneId)   { return del(std::to_string(zoneId),   Table::Zone);   }
-    inline bool delSweep (int sweepId)  { return del(std::to_string(sweepId),  Table::Sweep);  }
-    inline bool delSensor(int sensorId) { return del(std::to_string(sensorId), Table::Sensor); }
-
-    bool tryConnect (std::string connectionName = "");
     bool copyFrom   (BADataBase &src, Table, CopyMod);
-
-    inline bool isConnected() { return checkScheme(); }
 
     std::vector <SensorLine> getSensorLines(int sensorId);
     std::vector <Zone>       getSensorZones(int sensorId);
@@ -68,16 +58,12 @@ public:
     //bool JsonFileToBAInfo(const char* jsonFileName);
 
 
-//private:
+private:
     template <typename Entity> std::string add(Entity&, InsertMod);
     bool del(std::string id, Table);
 
-    bool checkScheme();
-    bool setScheme();
-
-//private:
-    std::string connName_;
-    std::unique_ptr<pqxx::connection> conn_;
+    bool checkScheme() override;
+    bool setScheme() override;
 };
 
 

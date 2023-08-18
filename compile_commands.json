@@ -1,27 +1,22 @@
 [
 {
   "directory": "/home/j/proj/badatabase/build",
-  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/badatabase.cpp.o -c /home/j/proj/badatabase/badatabase.cpp",
+  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -I/home/j/proj/badatabase/babase -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/badatabase.cpp.o -c /home/j/proj/badatabase/badatabase.cpp",
   "file": "/home/j/proj/badatabase/badatabase.cpp"
 },
 {
   "directory": "/home/j/proj/badatabase/build",
-  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/connconfmanager.cpp.o -c /home/j/proj/badatabase/connconfmanager.cpp",
-  "file": "/home/j/proj/badatabase/connconfmanager.cpp"
-},
-{
-  "directory": "/home/j/proj/badatabase/build",
-  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/connmanager.cpp.o -c /home/j/proj/badatabase/connmanager.cpp",
+  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -I/home/j/proj/badatabase/babase -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/connmanager.cpp.o -c /home/j/proj/badatabase/connmanager.cpp",
   "file": "/home/j/proj/badatabase/connmanager.cpp"
 },
 {
   "directory": "/home/j/proj/badatabase/build",
-  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/query.cpp.o -c /home/j/proj/badatabase/query.cpp",
+  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -I/home/j/proj/badatabase/babase -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/query.cpp.o -c /home/j/proj/badatabase/query.cpp",
   "file": "/home/j/proj/badatabase/query.cpp"
 },
 {
   "directory": "/home/j/proj/badatabase/build",
-  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/sensor.cpp.o -c /home/j/proj/badatabase/sensor.cpp",
+  "command": "/usr/bin/c++ -Dbadatabase_EXPORTS -I/home/j/proj/badatabase/include -I/home/j/proj/badatabase/babase -std=gnu++20 -fPIC -o CMakeFiles/badatabase.dir/sensor.cpp.o -c /home/j/proj/badatabase/sensor.cpp",
   "file": "/home/j/proj/badatabase/sensor.cpp"
 }
 ]

@@ -28,40 +28,6 @@
 using namespace badatabase;
 using namespace batypes;
 
-BADataBase::~BADataBase() {}
-
-BADataBase::BADataBase(std::string connName)
-    : connName_(connName)
-    , conn_(nullptr)
-{
-}
-
-//BADataBase BADataBase::operator=(BADataBase&& other) { return BADataBase(std::move(other)); }
-
-bool BADataBase::tryConnect(std::string connectionName)
-{
-    try {
-        connName_ = connectionName.empty() ? connName_ : connectionName;
-        conn_ = std::make_unique<pqxx::connection>(ConnConfManager::getConnectionOptions(connName_));
-
-        //if (checkScheme() || setScheme()) {
-        if (setScheme()) {
-            Logger::cout() << "Успешное подключение к " + connName_ << std::endl;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    catch (const pqxx::broken_connection &e) {
-        Logger::cout() << "Не удалось подключиться к " + connName_ << ": " << e.what() << std::endl;
-        return false;
-    }
-    catch (...) {
-        return false;
-    }
-}
-
 bool BADataBase::checkScheme()
 {
     try {
@@ -99,7 +65,7 @@ bool BADataBase::setScheme()
 {
     try {
         pqxx::work txn(*conn_);
-        txn.exec(Query::mainSQL());
+        txn.exec(Query::mainSQL);
         txn.commit();
         Logger::cout() << "Схема базы данных была успешно обновлена" << std::endl;
         return true;
@@ -166,7 +132,7 @@ bool BADataBase::del(std::string prKey, Table table)
 
 std::string BADataBase::getBADeviceInfoId()
 {
-    std::string id = ConnConfManager::getDevice(connName_);
+    std::string id = config.getDevice(connName_);
     if (id.empty()) { return getBADeviceInfo().deviceId; }
     return id;
 }
@@ -184,7 +150,7 @@ BADeviceInfo BADataBase::getBADeviceInfo()
         device.adcFreq = res[0]["adcfreq"].as<long>(0);
         device.startDiscret = res[0]["startdiscret"].as<int>(0);
 
-        ConnConfManager::setDevice(connName_, device.deviceId);
+        config.setDevice(connName_, device.deviceId);
 
         return device;
     }

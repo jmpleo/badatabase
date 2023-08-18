@@ -1,9 +1,9 @@
 #pragma once
 
-#include "config.h"
 #include "logger.h"
 #include "namestranslator.h"
 #include <boost/lexical_cast.hpp>
+#include <limits>
 #include <pqxx/strconv.hxx>
 #include <string>
 
@@ -15,48 +15,36 @@ using str = std::string;
 using nt = NamesTranslator;
 
 public:
-    static inline str mainSQL() { return instance().mainSQL_; }
+    static str selectFrom(Table table) { return "SELECT * FROM " + nt::name(table); }
 
-    static inline str selectFrom(Table table) { return "SELECT * FROM " + nt::name(table); }
-
-    static inline str deleteFrom(Table, str prKey);
-    static inline str selectCursorOn(Table);
-    static inline str fetchFromCurrentCursor(Table);
-    static inline str fetchAsCompositeFromCurrentCursor(Table);
+    static str deleteFrom(Table, str prKey);
+    static str selectCursorOn(Table);
+    static str fetchFromCurrentCursor(Table);
+    static str fetchAsCompositeFromCurrentCursor(Table);
 
     template <typename Entity>
-    static inline str insertInto(Entity&, InsertMod);
-    static inline str insertInto(Table, str record, InsertMod);
-    static inline str selectCursorOnZones(int sensorId);
-    static inline str selectCursorOnLines(int sensorId);
+    static str insertInto(Entity&, InsertMod);
+    static str insertInto(Table, str record, InsertMod);
+    static str selectCursorOnZones(int sensorId);
+    static str selectCursorOnLines(int sensorId);
 
-    static inline str to_quoted (str s) { return "'" + s + "'"; }
+    static str to_quoted (str s) { return "'" + s + "'"; }
 
-    Query(const Query&) = delete;
-    Query& operator=(const Query&) = delete;
+    static void setMainSQLPath(std::string newMaiSQLPath) { mainSQL = readMainSQL(newMaiSQLPath); }
 
-    static inline void setMainSQLPath(std::string newMaiSQLPath = _DEFAULT_MAINSQL_PATH ) { instance().mainSQL_ = readMainSQL(newMaiSQLPath); }
+    static std::string readMainSQL(std::string pathToMainSQL);
+    static std::string mainSQL;
 
 private:
     template <typename Entity>
-    static inline str prepareQueryParam(Entity&)    { return ""; }
-    static inline str exec(str func, str paramLine) { return "SELECT " + func + "(" + paramLine + ")"; }
+    static str prepareQueryParam(Entity&)    { return ""; }
+    static str execQuery(str func, str paramLine) { return "SELECT " + func + "(" + paramLine + ")"; }
 
-private:
-    inline static Query& instance() { static Query instance; return instance; }
-
-    static std::string readMainSQL(std::string pathToMainSQL = _DEFAULT_MAINSQL_PATH);
-
-    Query();
-    ~Query();
-
-    std::string mainSQL_;
 };
-
 
 inline std::string Query::selectCursorOnZones(int sensorId)
 {
-    return exec(nt::cursorFunc(Table::Zone),
+    return execQuery(nt::cursorFunc(Table::Zone),
         "p_sensorid =>" + std::to_string(sensorId) +
         ",cur_name =>" + to_quoted(nt::cursorName(Table::Zone))
     );
@@ -64,7 +52,7 @@ inline std::string Query::selectCursorOnZones(int sensorId)
 
 inline std::string Query::selectCursorOnLines(int sensorId)
 {
-    return exec(nt::cursorFunc(Table::Line),
+    return execQuery(nt::cursorFunc(Table::Line),
         "p_sensorid =>" + std::to_string(sensorId) +
         ",cur_name =>" + to_quoted(nt::cursorName(Table::Line))
     );
@@ -77,12 +65,12 @@ inline std::string Query::deleteFrom(Table table, str prKey)
 
 inline std::string Query::selectCursorOn(Table table)
 {
-    return exec(nt::cursorFunc(table), to_quoted(nt::cursorName(table)));
+    return execQuery(nt::cursorFunc(table), to_quoted(nt::cursorName(table)));
 }
 
 inline std::string Query::fetchAsCompositeFromCurrentCursor(Table table)
 {
-    return exec(nt::fetchFunc(table), to_quoted(nt::cursorName(table)));
+    return execQuery(nt::fetchFunc(table), to_quoted(nt::cursorName(table)));
 }
 
 inline std::string Query::fetchFromCurrentCursor(Table table)
@@ -93,12 +81,12 @@ inline std::string Query::fetchFromCurrentCursor(Table table)
 template <typename T>
 inline std::string Query::insertInto(T &entity, InsertMod mod)
 {
-    return exec(nt::insertFunc(nt::whatEnity(entity), mod), prepareQueryParam(entity));
+    return execQuery(nt::insertFunc(nt::whatEnity(entity), mod), prepareQueryParam(entity));
 }
 
 inline std::string Query::insertInto(Table t, str composite, InsertMod mod)
 {
-    return exec(nt::insertFunc(t, mod), to_quoted(composite));
+    return execQuery(nt::insertFunc(t, mod), to_quoted(composite));
 }
 
 template <>
@@ -131,7 +119,6 @@ inline std::string Query::prepareQueryParam<batypes::Sensor>(batypes::Sensor& se
 template <>
 inline std::string Query::prepareQueryParam<batypes::SensorLine>(batypes::SensorLine& line)
 {
-    using boost::lexical_cast;
     using pqxx::to_string;
 
     return
@@ -154,7 +141,6 @@ inline std::string Query::prepareQueryParam<batypes::SensorLine>(batypes::Sensor
 template <>
 inline std::string Query::prepareQueryParam<batypes::Zone>(batypes::Zone& zone)
 {
-    using boost::lexical_cast;
     using pqxx::to_string;
 
     return

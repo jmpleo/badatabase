@@ -1,13 +1,10 @@
 #include "query.h"
+#include "config.h"
+
 
 using namespace badatabase;
 
-Query::Query()
-    : mainSQL_(readMainSQL())
-{
-}
-
-Query::~Query() {}
+std::string Query::mainSQL = Query::readMainSQL(_DEFAULT_MAINSQL_PATH);
 
 std::string Query::readMainSQL(std::string pathToMainSQL)
 {
