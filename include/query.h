@@ -145,7 +145,7 @@ inline std::string Query::prepareQueryParam<batypes::Zone>(batypes::Zone& zone)
 
     return
         "p_lineid   =>" + to_string( zone.lineId ) +
-        "p_extzoneid =>" + to_string( zone.extZoneId ) +
+        ",p_extzoneid =>" + to_string( zone.extZoneId ) +
         ",p_sensorid =>" + to_string( zone.sensorId ) +
         ",p_deviceid =>" + to_quoted( zone.deviceId ) +
         ",p_zonename =>" + to_quoted( zone.zoneName ) +

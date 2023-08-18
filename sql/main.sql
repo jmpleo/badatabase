@@ -1477,6 +1477,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+/*
 CREATE OR REPLACE FUNCTION update_sensor_line (
     p_lineid INTEGER,
     p_linename VARCHAR(32) DEFAULT NULL,
@@ -1603,3 +1604,4 @@ BEGIN
     WHERE zoneid = p_zoneid;
 END;
 $$ LANGUAGE plpgsql;
+*/
