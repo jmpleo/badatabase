@@ -28,6 +28,7 @@
 using namespace badatabase;
 using namespace batypes;
 
+/*
 bool BADataBase::checkScheme()
 {
     if (conn_ == nullptr) {
@@ -64,7 +65,7 @@ bool BADataBase::checkScheme()
         return false;
     }
 }
-
+*/
 
 bool BADataBase::setScheme()
 {

@@ -62,7 +62,7 @@ private:
     template <typename Entity> std::string add(Entity&, InsertMod);
     bool del(std::string id, Table);
 
-    bool checkScheme() override;
+    //bool checkScheme() override;
     bool setScheme() override;
 };
 
