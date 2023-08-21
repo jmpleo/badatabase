@@ -17,16 +17,16 @@ using nt = NamesTranslator;
 public:
     static str selectFrom(Table table) { return "SELECT * FROM " + nt::name(table); }
 
-    static str deleteFrom(Table, str prKey);
-    static str selectCursorOn(Table);
-    static str fetchFromCurrentCursor(Table);
-    static str fetchAsCompositeFromCurrentCursor(Table);
+    static inline str deleteFrom(Table, str prKey);
+    static inline str selectCursorOn(Table);
+    static inline str fetchFromCurrentCursor(Table);
+    static inline str fetchAsCompositeFromCurrentCursor(Table);
 
     template <typename Entity>
     static str insertInto(Entity&, InsertMod);
-    static str insertInto(Table, str record, InsertMod);
-    static str selectCursorOnZones(int sensorId);
-    static str selectCursorOnLines(int sensorId);
+    static inline str insertInto(Table, str record, InsertMod);
+    static inline str selectCursorOnZones(int sensorId);
+    static inline str selectCursorOnLines(int sensorId);
 
     static str to_quoted (str s) { return "'" + s + "'"; }
 
@@ -37,7 +37,7 @@ public:
 
 private:
     template <typename Entity>
-    static str prepareQueryParam(Entity&)    { return ""; }
+    static str prepareQueryParam(Entity&)         { return ""; }
     static str execQuery(str func, str paramLine) { return "SELECT " + func + "(" + paramLine + ")"; }
 
 };
