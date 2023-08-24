@@ -28,45 +28,6 @@
 using namespace badatabase;
 using namespace batypes;
 
-/*
-bool BADataBase::checkScheme()
-{
-    if (conn_ == nullptr) {
-        Logger::cout() << "Cоединениe не установлено" << std::endl;
-        return false;
-    }
-
-    try {
-        pqxx::result
-            tables = pqxx::nontransaction(*conn_).exec(
-                " SELECT table_name FROM information_schema.tables"
-                " WHERE table_schema = 'public'"
-            ),
-            functions = pqxx::nontransaction(*conn_).exec(
-                " SELECT routine_name FROM information_schema.routines"
-                " WHERE routine_schema = 'public'"
-            );
-
-        for (auto row : tables) {
-            if (nt::checkTable(row["table_name"].c_str()) == false) {
-                return false;
-            }
-        }
-        //for (auto row : functions) {
-        //    if (nt::checkFunc(row["routine_name"].c_str()) == false) {
-        //        return false;
-        //    }
-        //}
-        return true;
-    }
-
-    catch (const std::exception &e) {
-        Logger::cout() << e.what() << std::endl;
-        return false;
-    }
-}
-*/
-
 bool BADataBase::setScheme()
 {
     if (conn_ == nullptr) {

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS cur_select_sensorslines(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_sensorslines (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -14,6 +15,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR);
 CREATE OR REPLACE FUNCTION cur_select_sensors (cur_name REFCURSOR)
 RETURNS REFCURSOR AS $$
 BEGIN
@@ -23,6 +25,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_zones (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -39,6 +42,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sweepdatalorenz (REFCURSOR, INTEGER, TIMESTAMP);
 CREATE OR REPLACE FUNCTION cur_select_sweepdatalorenz (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL,

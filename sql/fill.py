@@ -209,26 +209,31 @@ for i in range(10):
     print(f"{i}/10", end='\r')
 
 print("\nlines...")
-for i in range(1000):
-    cur.execute("select sensorid from sensors order by random() limit 1");
-    cur.callproc("insert_sensorslines_without_update", random_line(faker, cur.fetchone()))
-    print(f"{i}/1000", end='\r')
+for s in range(10):
+    for i in range(5):
+        cur.callproc("insert_sensorslines_without_update", random_line(faker, s+1))
+        print(f"{i}/1000", end='\r')
 
 print("\nzones...")
 for i in range(1000):
-    cur.execute("select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1) from sensorslines l join sensors s on s.sensorid = l.sensorid order by random() limit 1")
+    cur.execute(
+        f"select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1)"
+        " from sensorslines l"
+        " join sensors s on s.sensorid = l.sensorid"
+        " order by random() limit 1"
+    )
     lid, sid, did = cur.fetchone()
     cur.callproc("insert_zones_without_update", random_zone(faker, lid, sid, did))
     print(f"{i}/1000", end='\r')
 
-
+"""
 print("\nsweep:")
 for i in range(5):
     cur.execute("select sensorid, sensorname from sensors order by random() limit 1");
     sid, sname = cur.fetchone()
     cur.callproc("insert_sweepdatalorenz_without_update", random_sweep(faker, sid, sname))
     print(f"{i}/5", end='\r')
-
+"""
 
 conn.commit()
 

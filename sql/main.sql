@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS sensors (
 CREATE TABLE IF NOT EXISTS sensorslines (
     lineid SERIAL PRIMARY KEY,
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    linename VARCHAR(32) NOT NULL UNIQUE,
+    linename VARCHAR(32) NOT NULL,
     linefullname VARCHAR(128) NOT NULL DEFAULT '',
     linetype INTEGER NOT NULL,
     startpoint INTEGER NOT NULL,
@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS sensorslines (
     mhztemp20 DOUBLE PRECISION NOT NULL,
     tempcoeff DOUBLE PRECISION NOT NULL,
     defcoeff DOUBLE PRECISION NOT NULL,
-    auxlineid INTEGER NOT NULL
+    auxlineid INTEGER NOT NULL,
+
+    CONSTRAINT linename_unique UNIQUE(sensorid, linename)
 );
 
 CREATE TABLE IF NOT EXISTS sweepdatalorenz (
@@ -76,7 +78,7 @@ CREATE TABLE IF NOT EXISTS zones (
     lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
     deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),
-    zonename VARCHAR(32) NOT NULL UNIQUE,
+    zonename VARCHAR(32) NOT NULL,
     zonefullname VARCHAR(128) NOT NULL DEFAULT '',
     zonetype INTEGER NOT NULL,
     direct INTEGER NOT NULL,
@@ -87,7 +89,9 @@ CREATE TABLE IF NOT EXISTS zones (
     lengthzoneinarea DOUBLE PRECISION NOT NULL,
     startinline DOUBLE PRECISION NOT NULL,
     endinline DOUBLE PRECISION NOT NULL,
-    lengthinline DOUBLE PRECISION NOT NULL
+    lengthinline DOUBLE PRECISION NOT NULL,
+
+    CONSTRAINT zonename_unique UNIQUE(lineid, zonename)
 );
 
 ALTER TABLE zones
@@ -96,31 +100,31 @@ ADD COLUMN IF NOT EXISTS extzoneid INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sweepdatalorenz
 ADD COLUMN IF NOT EXISTS shc REAL NOT NULL DEFAULT 0;
 
-DELETE FROM sensors WHERE sensorid NOT IN (
-  SELECT MIN(sensorid) FROM sensors GROUP BY sensorname
-);
+--DELETE FROM sensors WHERE sensorid NOT IN (
+--  SELECT MIN(sensorid) FROM sensors GROUP BY sensorname
+--);
 ALTER TABLE sensors
 DROP CONSTRAINT IF EXISTS sensorname_unique;
 ALTER TABLE sensors
 ADD CONSTRAINT sensorname_unique UNIQUE(sensorname);
 
-DELETE FROM sensorslines WHERE lineid NOT IN (
-  SELECT MIN(lineid) FROM sensorslines GROUP BY linename
-);
+--DELETE FROM sensorslines WHERE lineid NOT IN (
+--  SELECT MIN(lineid) FROM sensorslines GROUP BY linename
+--);
 
 ALTER TABLE sensorslines
 DROP CONSTRAINT IF EXISTS linename_unique;
 ALTER TABLE sensorslines
-ADD CONSTRAINT linename_unique UNIQUE(linename);
+ADD CONSTRAINT linename_unique UNIQUE(sensorid, linename);
 
-DELETE FROM zones WHERE zoneid NOT IN (
-  SELECT MIN(zoneid) FROM zones GROUP BY zonename
-);
+--DELETE FROM zones WHERE zoneid NOT IN (
+--  SELECT MIN(zoneid) FROM zones GROUP BY zonename
+--);
 
 ALTER TABLE zones
 DROP CONSTRAINT IF EXISTS zonename_unique;
 ALTER TABLE zones
-ADD CONSTRAINT zonename_unique UNIQUE(zonename);
+ADD CONSTRAINT zonename_unique UNIQUE(lineid, zonename);
 --DROP FUNCTION IF EXISTS fetch_sensorslines (REFCURSOR);
 CREATE OR REPLACE FUNCTION fetch_sensorslines (cur REFCURSOR)
 RETURNS SETOF sensorslines AS $$
@@ -663,6 +667,11 @@ DECLARE
   r_lineid INTEGER;
 BEGIN
 
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = p_sensorid AND linename = p_linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = p_lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) была перезаписана', p_linename, p_sensorid;
+  END IF;
+
   IF p_lineid IS NULL THEN
     p_lineid := nextval('sensorslines_lineid_seq');
   ELSE
@@ -700,7 +709,7 @@ BEGIN
     p_defcoeff,
     p_auxlineid
   )
-  ON CONFLICT (linename)
+  ON CONFLICT (sensorid, linename)
     DO UPDATE
       SET
         lineid = p_lineid,
@@ -730,6 +739,11 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = l.sensorid AND linename = l.linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = l.lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) была перезаписана', l.linename, l.sensorid;
+  END IF;
 
   IF l.lineid IS NULL THEN
     l.lineid := nextval('sensorslines_lineid_seq');
@@ -768,7 +782,7 @@ BEGIN
     l.defcoeff,
     l.auxlineid
   )
-  ON CONFLICT (linename)
+  ON CONFLICT (sensorid, linename)
     DO UPDATE
       SET
         lineid = l.lineid,
@@ -816,6 +830,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = p_sensorid AND linename = p_linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = p_lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) не была перезаписана', p_linename, p_sensorid;
+  END IF;
+
   p_lineid := (
     CASE WHEN p_lineid IS NOT NULL THEN
       p_lineid
@@ -868,6 +888,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = l.sensorid AND linename = l.linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = l.lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) не была перезаписана', l.linename, l.sensorid;
+  END IF;
+
   l.lineid := (
     CASE WHEN l.lineid IS NOT NULL THEN
       l.lineid
@@ -1145,6 +1171,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = p_lineid AND zonename = p_zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) не была перезаписана', p_zonename, p_lineid;
+  END IF;
+
   p_zoneid := (
     CASE WHEN p_zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
       nextval('zones_zoneid_seq')
@@ -1204,6 +1236,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = z.lineid AND zonename = z.zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) не была перезаписана', z.zonename, z.lineid;
+  END IF;
+
   z.zoneid := (
     CASE WHEN z.zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
       nextval('zones_zoneid_seq')
@@ -1281,6 +1319,12 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
 
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = p_lineid AND zonename = p_zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) была перезаписана', p_zonename, p_lineid;
+  END IF;
+
   IF p_zoneid IS NULL THEN
     p_zoneid := nextval('zones_zoneid_seq');
   ELSE
@@ -1324,7 +1368,7 @@ BEGIN
     p_endinline,
     p_lengthinline
   )
-  ON CONFLICT (zonename)
+  ON CONFLICT (lineid, zonename)
     DO UPDATE
       SET
         zoneid = p_zoneid,
@@ -1357,6 +1401,11 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = z.lineid AND zonename = z.zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) была перезаписана', z.zonename, z.lineid;
+  END IF;
 
   IF z.zoneid IS NULL THEN
     z.zoneid := nextval('zones_zoneid_seq');
@@ -1401,7 +1450,7 @@ BEGIN
     z.endinline,
     z.lengthinline
   )
-  ON CONFLICT (zonename)
+  ON CONFLICT (lineid, zonename)
     DO UPDATE
       SET
         zoneid = z.zoneid,
@@ -1428,6 +1477,7 @@ END;
 
 $$ LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS cur_select_sensorslines(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_sensorslines (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -1444,6 +1494,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR);
 CREATE OR REPLACE FUNCTION cur_select_sensors (cur_name REFCURSOR)
 RETURNS REFCURSOR AS $$
 BEGIN
@@ -1453,6 +1504,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_zones (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -1469,6 +1521,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS cur_select_sweepdatalorenz (REFCURSOR, INTEGER, TIMESTAMP);
 CREATE OR REPLACE FUNCTION cur_select_sweepdatalorenz (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL,

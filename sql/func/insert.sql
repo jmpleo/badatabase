@@ -492,6 +492,11 @@ DECLARE
   r_lineid INTEGER;
 BEGIN
 
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = p_sensorid AND linename = p_linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = p_lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) была перезаписана', p_linename, p_sensorid;
+  END IF;
+
   IF p_lineid IS NULL THEN
     p_lineid := nextval('sensorslines_lineid_seq');
   ELSE
@@ -529,7 +534,7 @@ BEGIN
     p_defcoeff,
     p_auxlineid
   )
-  ON CONFLICT (linename)
+  ON CONFLICT (sensorid, linename)
     DO UPDATE
       SET
         lineid = p_lineid,
@@ -559,6 +564,11 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = l.sensorid AND linename = l.linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = l.lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) была перезаписана', l.linename, l.sensorid;
+  END IF;
 
   IF l.lineid IS NULL THEN
     l.lineid := nextval('sensorslines_lineid_seq');
@@ -597,7 +607,7 @@ BEGIN
     l.defcoeff,
     l.auxlineid
   )
-  ON CONFLICT (linename)
+  ON CONFLICT (sensorid, linename)
     DO UPDATE
       SET
         lineid = l.lineid,
@@ -645,6 +655,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = p_sensorid AND linename = p_linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = p_lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) не была перезаписана', p_linename, p_sensorid;
+  END IF;
+
   p_lineid := (
     CASE WHEN p_lineid IS NOT NULL THEN
       p_lineid
@@ -697,6 +713,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_lineid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM sensorslines WHERE sensorid = l.sensorid AND linename = l.linename)
+  OR EXISTS(SELECT 1 FROM sensorslines WHERE lineid = l.lineid) THEN
+    RAISE NOTICE 'Линия linename(%) сенсора id(%) не была перезаписана', l.linename, l.sensorid;
+  END IF;
+
   l.lineid := (
     CASE WHEN l.lineid IS NOT NULL THEN
       l.lineid
@@ -974,6 +996,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = p_lineid AND zonename = p_zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) не была перезаписана', p_zonename, p_lineid;
+  END IF;
+
   p_zoneid := (
     CASE WHEN p_zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
       nextval('zones_zoneid_seq')
@@ -1033,6 +1061,12 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = z.lineid AND zonename = z.zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) не была перезаписана', z.zonename, z.lineid;
+  END IF;
+
   z.zoneid := (
     CASE WHEN z.zoneid IS NULL OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
       nextval('zones_zoneid_seq')
@@ -1110,6 +1144,12 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
 
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = p_lineid AND zonename = p_zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = p_zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) была перезаписана', p_zonename, p_lineid;
+  END IF;
+
   IF p_zoneid IS NULL THEN
     p_zoneid := nextval('zones_zoneid_seq');
   ELSE
@@ -1153,7 +1193,7 @@ BEGIN
     p_endinline,
     p_lengthinline
   )
-  ON CONFLICT (zonename)
+  ON CONFLICT (lineid, zonename)
     DO UPDATE
       SET
         zoneid = p_zoneid,
@@ -1186,6 +1226,11 @@ RETURNS INTEGER AS $$
 DECLARE
   r_zoneid INTEGER;
 BEGIN
+
+  IF EXISTS(SELECT 1 FROM zones WHERE lineid = z.lineid AND zonename = z.zonename)
+  OR EXISTS(SELECT 1 FROM zones WHERE zoneid = z.zoneid) THEN
+    RAISE NOTICE 'Зона zonename(%) линии lineid(%) была перезаписана', z.zonename, z.lineid;
+  END IF;
 
   IF z.zoneid IS NULL THEN
     z.zoneid := nextval('zones_zoneid_seq');
@@ -1230,7 +1275,7 @@ BEGIN
     z.endinline,
     z.lengthinline
   )
-  ON CONFLICT (zonename)
+  ON CONFLICT (lineid, zonename)
     DO UPDATE
       SET
         zoneid = z.zoneid,

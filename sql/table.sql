@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS sensors (
 CREATE TABLE IF NOT EXISTS sensorslines (
     lineid SERIAL PRIMARY KEY,
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    linename VARCHAR(32) NOT NULL UNIQUE,
+    linename VARCHAR(32) NOT NULL,
     linefullname VARCHAR(128) NOT NULL DEFAULT '',
     linetype INTEGER NOT NULL,
     startpoint INTEGER NOT NULL,
@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS sensorslines (
     mhztemp20 DOUBLE PRECISION NOT NULL,
     tempcoeff DOUBLE PRECISION NOT NULL,
     defcoeff DOUBLE PRECISION NOT NULL,
-    auxlineid INTEGER NOT NULL
+    auxlineid INTEGER NOT NULL,
+
+    CONSTRAINT linename_unique UNIQUE(sensorid, linename)
 );
 
 CREATE TABLE IF NOT EXISTS sweepdatalorenz (
@@ -76,7 +78,7 @@ CREATE TABLE IF NOT EXISTS zones (
     lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
     sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
     deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),
-    zonename VARCHAR(32) NOT NULL UNIQUE,
+    zonename VARCHAR(32) NOT NULL,
     zonefullname VARCHAR(128) NOT NULL DEFAULT '',
     zonetype INTEGER NOT NULL,
     direct INTEGER NOT NULL,
@@ -87,6 +89,8 @@ CREATE TABLE IF NOT EXISTS zones (
     lengthzoneinarea DOUBLE PRECISION NOT NULL,
     startinline DOUBLE PRECISION NOT NULL,
     endinline DOUBLE PRECISION NOT NULL,
-    lengthinline DOUBLE PRECISION NOT NULL
+    lengthinline DOUBLE PRECISION NOT NULL,
+
+    CONSTRAINT zonename_unique UNIQUE(lineid, zonename)
 );
 
