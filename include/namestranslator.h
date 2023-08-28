@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "batypes.h"
 #include "batypes/badeviceinfo.h"
 #include "batypes/sensor.h"

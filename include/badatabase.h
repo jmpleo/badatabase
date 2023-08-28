@@ -26,10 +26,11 @@ public:
 
     std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
 
-    int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { return std::stoi(add(z, mod)); }
-    int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { return std::stoi(add(s, mod)); }
-    int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { return std::stoi(add(l, mod)); }
-    int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { return std::stoi(add(sw, mod)); }
+    int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(z, mod));  } catch (...) { return 0; } }
+    int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(s, mod));  } catch (...) { return 0; } }
+    int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(l, mod));  } catch (...) { return 0; } }
+    int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(sw, mod)); } catch (...) { return 0; } }
+
 
     bool delLine  (int lineId)   { return del(std::to_string(lineId),   Table::Line);   }
     bool delZone  (int zoneId)   { return del(std::to_string(zoneId),   Table::Zone);   }
@@ -61,8 +62,6 @@ public:
 private:
     template <typename Entity> std::string add(Entity&, InsertMod);
     bool del(std::string id, Table);
-
-    //bool checkScheme() override;
     bool setScheme() override;
 };
 
@@ -70,7 +69,7 @@ private:
 template <typename T>
 std::string BADataBase::add(T &entity, InsertMod mod)
 {
-    std::string insertedId = "0";
+    std::string insertedId = "";
 
     if (conn_ == nullptr) {
         Logger::cout() << "Cоединениe не установлено" << std::endl;

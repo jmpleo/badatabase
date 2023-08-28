@@ -221,7 +221,7 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 
             z.direct = row["direct"].as<int>(0);
             z.zoneId = row["zoneid"].as<int>(0);
-            z.extZoneId = row["extzonid"].as<int>(0);
+            z.extZoneId = row["extzoneid"].as<int>(0);
             z.lineId = row["lineid"].as<int>(0);
             z.sensorId = row["sensorid"].as<int>(0);
             z.zoneType = row["zonetype"].as<int>(0);
@@ -295,11 +295,14 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
             s.pulseGain = row["pulsegain"].as<int>(0);
             s.pulseLength = row["pulselength"].as<int>(0);
 
-            s.snrLines = getSensorLines(s.sensorId);
-            s.snrZones = getSensorZones(s.sensorId);
-
             sensors.push_back(s);
         }
+        txn.commit();
+
+        std::for_each(sensors.begin(), sensors.end(), [&](SensorDB& s) {
+            s.snrLines = getSensorLines(s.sensorId);
+            s.snrZones = getSensorZones(s.sensorId);
+        });
 
         return sensors;
     }
