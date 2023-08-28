@@ -22,6 +22,7 @@ using CopyMod = InsertMod;
 class BADataBase : public BABase
 {
 public:
+    BADataBase() : BABase() {}
     BADataBase(std::string connName) : BABase(connName) {}
 
     std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
