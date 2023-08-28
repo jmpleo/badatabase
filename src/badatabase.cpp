@@ -28,6 +28,23 @@
 using namespace badatabase;
 using namespace batypes;
 
+
+bool BADataBase::isConnected()
+{
+    if (conn_ == nullptr) {
+        return false;
+    }
+    try {
+        return pqxx::nontransaction(*conn_).exec(
+            "SELECT EXISTS(SELECT 1 FROM badeviceinfo)"
+        ).front().front().as<bool>(false);
+    }
+    catch (const std::exception &e) {
+        return false;
+    }
+}
+
+
 bool BADataBase::setScheme()
 {
     if (conn_ == nullptr) {

@@ -25,6 +25,8 @@ public:
     BADataBase() : BABase() {}
     BADataBase(std::string connName) : BABase(connName) {}
 
+    bool isConnected() override;
+
     std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
 
     int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(z, mod));  } catch (...) { return 0; } }
