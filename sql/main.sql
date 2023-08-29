@@ -593,7 +593,7 @@ RETURNS INTEGER AS $$
 DECLARE
     r_lineid INTEGER;
 BEGIN
-    IF p_id IS NOT NULL THEN
+    IF p_lineid IS NOT NULL THEN
         UPDATE sensorslines
         SET
             sensorid = p_sensorid,
@@ -615,7 +615,7 @@ BEGIN
             lineid INTO r_lineid;
 
         IF FOUND THEN
-            RETURN r_id;
+            RETURN r_lineid;
         END IF;
     END IF;
 
