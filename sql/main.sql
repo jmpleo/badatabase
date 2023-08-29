@@ -690,8 +690,8 @@ BEGIN
         p_mhztemp20 => l.mhztemp20,
         p_tempcoeff => l.tempcoeff,
         p_defcoeff => l.defcoeff,
-        p_auxlineid => p_auxlineid
-    );
+        p_auxlineid => l.auxlineid
+    ) INTO r_lineid;
     RETURN r_lineid;
 END;
 $$ LANGUAGE plpgsql;
@@ -785,7 +785,7 @@ BEGIN
         p_mhztemp20 => l.mhztemp20,
         p_tempcoeff => l.tempcoeff,
         p_defcoeff => l.defcoeff,
-        auxlineid => l.auxlineid
+        p_auxlineid => l.auxlineid
     ) INTO r_lineid;
     RETURN r_lineid;
 END;
@@ -1147,23 +1147,23 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
     SELECT insert_zones_with_update (
-        p_zoneid = z.zoneid,
-        p_extzoneid = z.extzoneid,
-        p_lineid = z.lineid,
-        p_sensorid = z.sensorid,
-        p_deviceid = z.deviceid,
-        p_zonename = z.zonename,
-        p_zonefullname = z.zonefullname,
-        p_zonetype = z.zonetype,
-        p_direct = z.direct,
-        p_startinareax = z.startinareax,
-        p_startinareay = z.startinareay,
-        p_endinareax = z.endinareax,
-        p_endinareay = z.endinareay,
-        p_lengthzoneinarea = z.lengthzoneinarea,
-        p_startinline = z.startinline,
-        p_endinline = z.endinline,
-        p_lengthinline = z.lengthinline
+        p_zoneid => z.zoneid,
+        p_extzoneid => z.extzoneid,
+        p_lineid => z.lineid,
+        p_sensorid => z.sensorid,
+        p_deviceid => z.deviceid,
+        p_zonename => z.zonename,
+        p_zonefullname => z.zonefullname,
+        p_zonetype => z.zonetype,
+        p_direct => z.direct,
+        p_startinareax => z.startinareax,
+        p_startinareay => z.startinareay,
+        p_endinareax => z.endinareax,
+        p_endinareay => z.endinareay,
+        p_lengthzoneinarea => z.lengthzoneinarea,
+        p_startinline => z.startinline,
+        p_endinline => z.endinline,
+        p_lengthinline => z.lengthinline
     ) INTO r_zoneid;
     RETURN r_zoneid;
 END;

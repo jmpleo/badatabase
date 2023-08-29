@@ -119,8 +119,8 @@ BEGIN
         p_mhztemp20 => l.mhztemp20,
         p_tempcoeff => l.tempcoeff,
         p_defcoeff => l.defcoeff,
-        p_auxlineid => p_auxlineid
-    );
+        p_auxlineid => l.auxlineid
+    ) INTO r_lineid;
     RETURN r_lineid;
 END;
 $$ LANGUAGE plpgsql;
@@ -214,7 +214,7 @@ BEGIN
         p_mhztemp20 => l.mhztemp20,
         p_tempcoeff => l.tempcoeff,
         p_defcoeff => l.defcoeff,
-        auxlineid => l.auxlineid
+        p_auxlineid => l.auxlineid
     ) INTO r_lineid;
     RETURN r_lineid;
 END;
