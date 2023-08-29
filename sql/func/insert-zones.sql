@@ -122,7 +122,7 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
     SELECT insert_zones_with_update (
-        p_zoneid => z.zoneid,
+        --p_zoneid => z.zoneid,
         p_extzoneid => z.extzoneid,
         p_lineid => z.lineid,
         p_sensorid => z.sensorid,
@@ -229,7 +229,7 @@ DECLARE
     r_zoneid INTEGER;
 BEGIN
     SELECT insert_zones_without_update (
-        p_zoneid => z.zoneid,
+        --p_zoneid => z.zoneid,
         p_extzoneid => z.extzoneid,
         p_lineid => z.lineid,
         p_sensorid => z.sensorid,

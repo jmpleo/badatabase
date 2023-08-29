@@ -48,8 +48,10 @@ BEGIN
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
             pulselength = p_pulselength
-        WHERE sensorid = p_sensorid
-        RETURNING sensorid INTO r_sensorid;
+        WHERE
+            sensorid = p_sensorid
+        RETURNING
+            sensorid INTO r_sensorid;
 
         IF FOUND THEN
             RETURN r_sensorid;
@@ -118,8 +120,10 @@ BEGIN
         adpgain = p_adpgain,
         pulsegain = p_pulsegain,
         pulselength = p_pulselength
-    RETURNING sensorid INTO r_sensorid;
-    RETURN r_sensorid;
+    RETURNING
+        sensorid INTO r_sensorid;
+    RETURN
+        r_sensorid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -232,9 +236,11 @@ BEGIN
         p_pulselength
     )
     ON CONFLICT (sensorname)
-    DO NOTHING
-    RETURNING sensorid INTO r_sensorid;
-    RETURN r_sensorid;
+        DO NOTHING
+    RETURNING
+        sensorid INTO r_sensorid;
+    RETURN
+        r_sensorid;
 END;
 $$ LANGUAGE plpgsql;
 

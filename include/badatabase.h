@@ -19,6 +19,15 @@ using namespace batypes;
 using nt = NamesTranslator;
 using CopyMod = InsertMod;
 
+
+/**
+ * \brief Класс взаимодействия с базой данных типа ba.
+ *
+ * База данных состоит из таблиц: sensors, sensorslines, zones, sweepdatalorenz,
+ * badeviceinfo. Объект BADataBase реализует необходимые для работы с
+ * соединением методы базового класса BABase: setScheme(), isConnected().
+ *
+ */
 class BADataBase : public BABase
 {
 public:
@@ -68,7 +77,15 @@ private:
     bool setScheme() override;
 };
 
-
+/**
+ *  \brief Метод добавления абстрактной сущности.
+ *
+ *  Поддерживаются только сущности типа Sensor, SensorLine, Zone, BADeviceInfo.
+ *
+ * \param entity Одна из описанных сущностей, добавляемая в таблицу.
+ * \param mod Режим вставки: Force - обновить, если существует, Quiet - доавить
+ * только если отсутствует (по первичному ключу и ограничениям).
+ */
 template <typename T>
 std::string BADataBase::add(T &entity, InsertMod mod)
 {

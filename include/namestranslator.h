@@ -14,6 +14,13 @@ namespace badatabase {
 enum class Table      { None, Sensor, Line, Zone, Sweep, Device };
 enum class InsertMod  { None, Force, Quiet };
 
+
+/**
+ *
+ * \brief Класс транслирования сочетаний Table, InsertMod в названия сущностей,
+ * первичных ключей, функций БД.
+ *
+ */
 class NamesTranslator
 {
 using str = std::string;
@@ -32,6 +39,7 @@ public:
 
     template <typename T> inline static Table whatEnity(T &enity);
 };
+
 
 template <typename T>
 inline Table NamesTranslator::whatEnity(T &entity)
@@ -55,6 +63,7 @@ inline bool NamesTranslator::checkTable(str name)
     return false;
 }
 
+
 inline std::string NamesTranslator::insertFunc(Table table, InsertMod mod)
 {
     switch (mod) {
@@ -76,6 +85,7 @@ inline std::string NamesTranslator::name(Table table)
         default:            return "";
     }
 }
+
 
 inline std::string NamesTranslator::primaryKeyOf(Table table)
 {

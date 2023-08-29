@@ -106,7 +106,7 @@ DECLARE
     r_lineid INTEGER;
 BEGIN
     SELECT insert_sensorslines_with_update (
-        p_lineid => l.lineid,
+        --p_lineid => l.lineid,
         p_sensorid => l.sensorid,
         p_linename => l.linename,
         p_linefullname => l.linefullname,
@@ -201,7 +201,7 @@ DECLARE
     r_lineid INTEGER;
 BEGIN
     SELECT insert_sensorslines_without_update (
-        p_lineid => l.lineid,
+        --p_lineid => l.lineid,
         p_sensorid => l.sensorid,
         p_linename => l.linename,
         p_linefullname => l.linefullname,

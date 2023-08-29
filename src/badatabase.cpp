@@ -29,6 +29,14 @@ using namespace badatabase;
 using namespace batypes;
 
 
+/**
+ * \brief Проверка соединения с БД.
+ *
+ * Для проверки соединения выполняется обращение к таблице badeviceinfo.
+ *
+ * \param
+ * \return Статус соединения.
+ */
 bool BADataBase::isConnected()
 {
     if (conn_ == nullptr) {
@@ -36,7 +44,7 @@ bool BADataBase::isConnected()
     }
     try {
         return pqxx::nontransaction(*conn_).exec(
-            "SELECT EXISTS(SELECT 1 FROM badeviceinfo)"
+            "SELECT TRUE FROM badeviceinfo LIMIT 1"
         ).front().front().as<bool>(false);
     }
     catch (const std::exception &e) {
@@ -45,6 +53,11 @@ bool BADataBase::isConnected()
 }
 
 
+/**
+ * \brief Попытка выполнения скрипта main.sql.
+ *
+ * \return Статус успешности обновления схемы бд.
+ */
 bool BADataBase::setScheme()
 {
     if (conn_ == nullptr) {
@@ -56,7 +69,6 @@ bool BADataBase::setScheme()
         pqxx::work txn(*conn_);
         txn.exec(Query::mainSQL);
         txn.commit();
-        Logger::cout() << "Схема базы данных была успешно обновлена" << std::endl;
         return true;
     }
     catch (const std::exception &e) {
@@ -66,6 +78,14 @@ bool BADataBase::setScheme()
 }
 
 
+/**
+ * \brief Копирование данных таблицы из другого соединения.
+ *
+ * \param src Соединение откуда будет выполнен трансфер данных.
+ * \param table Из какой таблицы осуществляется копирование.
+ * \param mod Режим переноса. Force - перезапись данных по ограничению unique,
+ * Quiet - данные не копируются при возникновении конфликта ограничения
+ */
 bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 {
     if (getBADeviceInfoId() != src.getBADeviceInfoId()) {
@@ -105,6 +125,13 @@ bool BADataBase::copyFrom(BADataBase &src, Table table, CopyMod mod)
 }
 
 
+/**
+ * \brief Удаление записи по первичному ключу.
+ *
+ * \param prKey Первичный ключ таблицы table.
+ * \param table Таблица из которой выполняется удаление.
+ *
+ */
 bool BADataBase::del(std::string prKey, Table table)
 {
     if (conn_ == nullptr) {
@@ -115,7 +142,6 @@ bool BADataBase::del(std::string prKey, Table table)
     try {
         pqxx::work txn(*conn_);
         pqxx::result res = txn.exec(Query::deleteFrom(table, prKey));
-
         txn.commit();
         return !res.empty();
     }
@@ -129,14 +155,27 @@ bool BADataBase::del(std::string prKey, Table table)
     }
 }
 
+
+/**
+ * \brief Получение ID устройства с которым поддерживается соединение.
+ *
+ * Сначала производится попытка просмотра в файл конфигурации - куда кэшируется
+ * id устройства.
+ *
+ */
 std::string BADataBase::getBADeviceInfoId()
 {
     std::string id = config.getDevice(connName_);
-    if (id.empty()) { return getBADeviceInfo().deviceId; }
-    return id;
+    return id.empty() ? getBADeviceInfo().deviceId : id;
 }
 
 
+/**
+ * \brief Получение устройства для для текщего соединения.
+ *
+ * \return Пустую структуру при неуспешном выполнении запроса к таблице
+ * badeviceinfo.
+ */
 BADeviceInfo BADataBase::getBADeviceInfo()
 {
     BADeviceInfo device;
@@ -169,6 +208,11 @@ BADeviceInfo BADataBase::getBADeviceInfo()
 }
 
 
+/**
+ * \brief Получение списка линий для сенсора.
+ *
+ * \param sensorId Первичный ключ сенсора в таблице.
+ */
 std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
 {
     std::vector <SensorLine> lines;
@@ -216,6 +260,12 @@ std::vector <SensorLine> BADataBase::getSensorLines(int sensorId)
 }
 
 
+/**
+ * \brief Получение списка зон для сенсора.
+ *
+ * \param sensorId Первичный ключ сенсора.
+ *
+ */
 std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 {
     std::vector <Zone> zones;
@@ -273,6 +323,9 @@ std::vector <Zone> BADataBase::getSensorZones(int sensorId)
 }
 
 
+/**
+ * \brief Получение списка сенсоров с линиями и зонами.
+ */
 std::vector <SensorDB> BADataBase::getSensorsDB()
 {
     std::vector <SensorDB> sensors;
@@ -330,6 +383,9 @@ std::vector <SensorDB> BADataBase::getSensorsDB()
 }
 
 
+/**
+ * \brief Получение Свипа сенсора по времени.
+ */
 SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string time)
 {
     SweepLorenzResult sw;
@@ -377,6 +433,14 @@ SweepLorenzResult BADataBase::getSweepLorenzResult(int sensorId, std::string tim
 }
 
 
+/**
+ * \brief Получение списка свипов упорядоченных по времени.
+ *
+ * \param startTime С какого периода рассматриваются свипы.
+ * \param includes Включение свипов с startTime.
+ *
+ * \return Список из пар (sensorid, timeStamp)
+ */
 std::vector <std::pair <int, std::string>>
 BADataBase::getAllSweepByTime(std::string startTime, const bool includes)
 {
@@ -412,6 +476,15 @@ BADataBase::getAllSweepByTime(std::string startTime, const bool includes)
     }
 }
 
+
+/**
+ * \brief Получение списка свипов для конкретного сенсора.
+ *
+ * \param sensorId Первичный ключ сенсора.
+ * \param startTime Время начиная с которого рассматриваются свипы.
+ *
+ * \return Список пар (sensorid, sweeptime).
+ */
 std::vector <std::pair <int, std::string>>
 BADataBase::sensorListTime(int sensorId, std::string startTime)
 {
@@ -446,11 +519,11 @@ BADataBase::sensorListTime(int sensorId, std::string startTime)
     }
 }
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////////
 /// @brief Сосчитать из JSON файла информацию о сенсорах и актуализировать ее в БД
 /// @param jsonFileName - имя json файла
 /// @return успешно - true иначе false
-/*
 bool BADataBase::JsonFileToSensors(const char *jsonFileName)
 {
     nlohmann::json snrConf; // создаем пустой документ

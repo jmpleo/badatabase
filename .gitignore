@@ -3,3 +3,4 @@ sql/*.backup
 .cache
 compile_commands.json
 *.so
+docs

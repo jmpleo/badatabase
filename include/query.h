@@ -9,6 +9,11 @@
 
 namespace badatabase {
 
+/**
+ *
+ * \brief Препарирование запросов к БД.
+ *
+ */
 class Query
 {
 using str = std::string;
@@ -42,6 +47,7 @@ private:
 
 };
 
+
 inline std::string Query::selectCursorOnZones(int sensorId)
 {
     return execQuery(nt::cursorFunc(Table::Zone),
@@ -49,6 +55,7 @@ inline std::string Query::selectCursorOnZones(int sensorId)
         ",cur_name =>" + to_quoted(nt::cursorName(Table::Zone))
     );
 }
+
 
 inline std::string Query::selectCursorOnLines(int sensorId)
 {
@@ -58,25 +65,40 @@ inline std::string Query::selectCursorOnLines(int sensorId)
     );
 }
 
+
 inline std::string Query::deleteFrom(Table table, str prKey)
 {
     return " DELETE FROM " + nt::name(table) + " WHERE " + nt::primaryKeyOf(table) + "=" + prKey;
 }
+
 
 inline std::string Query::selectCursorOn(Table table)
 {
     return execQuery(nt::cursorFunc(table), to_quoted(nt::cursorName(table)));
 }
 
+
+/**
+ * \brief Строка с запросом для выборки следующей строки из курсора для таблицы
+ * table.
+ *
+ * Возвращаемое значение для такого запроса будет композиционным типом.
+ */
 inline std::string Query::fetchAsCompositeFromCurrentCursor(Table table)
 {
     return execQuery(nt::fetchFunc(table), to_quoted(nt::cursorName(table)));
 }
 
+
+/**
+ * \brief Строка с запросом для выборки следующей строки из курсора для таблицы
+ * table.
+ */
 inline std::string Query::fetchFromCurrentCursor(Table table)
 {
     return "SELECT * FROM " + nt::fetchFunc(table) + "(" + to_quoted(nt::cursorName(table)) + ")";
 }
+
 
 template <typename T>
 inline std::string Query::insertInto(T &entity, InsertMod mod)
@@ -84,11 +106,19 @@ inline std::string Query::insertInto(T &entity, InsertMod mod)
     return execQuery(nt::insertFunc(nt::whatEnity(entity), mod), prepareQueryParam(entity));
 }
 
+
 inline std::string Query::insertInto(Table t, str composite, InsertMod mod)
 {
     return execQuery(nt::insertFunc(t, mod), to_quoted(composite));
 }
 
+
+/**
+ * \brief Препарирование параметров для функции вставки сенсора.
+ *
+ * \param sensor Вставляемая структура сенсора.
+ * \return Строка вида: "p_sensorname => 'sensor1',..."
+ */
 template <>
 inline std::string Query::prepareQueryParam<batypes::Sensor>(batypes::Sensor& sensor)
 {
@@ -116,6 +146,13 @@ inline std::string Query::prepareQueryParam<batypes::Sensor>(batypes::Sensor& se
         ",p_pulselength =>" + to_string( sensor.pulseLength );
 }
 
+
+/**
+ * \brief Препарирование параметров для функции вставки линии.
+ *
+ * \param line Вставляемая структура линии.
+ * \return Строка вида: "p_sensorid => 123,..."
+ */
 template <>
 inline std::string Query::prepareQueryParam<batypes::SensorLine>(batypes::SensorLine& line)
 {
@@ -138,13 +175,20 @@ inline std::string Query::prepareQueryParam<batypes::SensorLine>(batypes::Sensor
 
 }
 
+
+/**
+ * \brief Препарирование параметров для функции вставки зоны.
+ *
+ * \param zone Вставляемая структура зоны.
+ * \return Строка вида: "p_lineid => 123,..."
+ */
 template <>
 inline std::string Query::prepareQueryParam<batypes::Zone>(batypes::Zone& zone)
 {
     using pqxx::to_string;
 
     return
-        "p_lineid   =>" + to_string( zone.lineId ) +
+        "p_lineid =>" + to_string( zone.lineId ) +
         ",p_extzoneid =>" + to_string( zone.extZoneId ) +
         ",p_sensorid =>" + to_string( zone.sensorId ) +
         ",p_deviceid =>" + to_quoted( zone.deviceId ) +
@@ -162,6 +206,13 @@ inline std::string Query::prepareQueryParam<batypes::Zone>(batypes::Zone& zone)
         ",p_lengthinline =>" + to_string( zone.lengthInLine );
 }
 
+
+/**
+ * \brief Препарирование параметров для функции вставки.
+ *
+ * \param device Устройство соединения.
+ * \return Строка вида: "p_deviceid => '123', ...".
+ */
 template <>
 inline std::string Query::prepareQueryParam<batypes::BADeviceInfo>(batypes::BADeviceInfo& device)
 {
