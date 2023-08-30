@@ -10,6 +10,7 @@
 #include <pqxx/connection.hxx>
 #include <pqxx/pqxx>
 #include <string>
+#include <charconv>
 
 namespace badatabase {
 
@@ -36,12 +37,12 @@ public:
 
     bool isConnected() override;
 
-    std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
+    //std::string setDevice(BADeviceInfo& d) { return add(d, InsertMod::Force); }
 
-    int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(z, mod));  } catch (...) { return 0; } }
-    int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(s, mod));  } catch (...) { return 0; } }
-    int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(l, mod));  } catch (...) { return 0; } }
-    int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { try { return std::stoi(add(sw, mod)); } catch (...) { return 0; } }
+    int addZone  (Zone& z,               InsertMod mod = InsertMod::Quiet) { return add(z, mod); } // { try { return std::stoi(add(z, mod));  } catch (...) { return 0; } }
+    int addSensor(Sensor& s,             InsertMod mod = InsertMod::Quiet) { return add(s, mod); } // { try { return std::stoi(add(s, mod));  } catch (...) { return 0; } }
+    int addLine  (SensorLine& l,         InsertMod mod = InsertMod::Quiet) { return add(l, mod); } // { try { return std::stoi(add(l, mod));  } catch (...) { return 0; } }
+    int addSweep (SweepLorenzResult& sw, InsertMod mod = InsertMod::Quiet) { return add(sw, mod); } // { try { return std::stoi(add(sw, mod)); } catch (...) { return 0; } }
 
 
     bool delLine  (int lineId)   { return del(std::to_string(lineId),   Table::Line);   }
@@ -72,7 +73,7 @@ public:
 
 
 private:
-    template <typename Entity> std::string add(Entity&, InsertMod);
+    template <typename Entity> int add(Entity&, InsertMod);
     bool del(std::string id, Table);
     bool setScheme() override;
 };
@@ -87,13 +88,13 @@ private:
  * только если отсутствует (по первичному ключу и ограничениям).
  */
 template <typename T>
-std::string BADataBase::add(T &entity, InsertMod mod)
+int BADataBase::add(T &entity, InsertMod mod)
 {
-    std::string insertedId = "";
+    int id = 0;
 
     if (conn_ == nullptr) {
         Logger::cout() << "Cоединениe не установлено" << std::endl;
-        return insertedId;
+        return id;
     }
 
     try {
@@ -101,18 +102,16 @@ std::string BADataBase::add(T &entity, InsertMod mod)
         pqxx::result res = txn.exec(Query::insertInto(entity, mod));
         txn.commit();
 
-        insertedId = res[0][0].c_str();
-
-        return insertedId;
+        id = std::stoi(res[0][0].as<std::string>());
     }
     catch (const pqxx::sql_error &e) {
         Logger::cout() << e.what() << std::endl << e.query() << std::endl;
-        return insertedId;
     }
     catch (const std::exception &e) {
         Logger::cout() << e.what() << std::endl;
-        return insertedId;
     }
+
+    return id;
 }
 
 } // end namespace badatabase
