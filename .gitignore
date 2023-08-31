@@ -4,3 +4,4 @@ sql/*.backup
 compile_commands.json
 *.so
 docs
+include/config.h
