@@ -102,7 +102,7 @@ int BADataBase::add(T &entity, InsertMod mod)
         pqxx::result res = txn.exec(Query::insertInto(entity, mod));
         txn.commit();
 
-        id = std::stoi(res[0][0].as<std::string>());
+        id = std::stoi(res[0][0].c_str());
     }
     catch (const pqxx::sql_error &e) {
         Logger::cout() << e.what() << std::endl << e.query() << std::endl;
