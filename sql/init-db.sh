@@ -5,4 +5,5 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-psql -c "create database $1" && psql -d $1 -f "./init.sql"
+psql -c "create database $1 owner $(whoami)" && \
+psql -d $1 -f "./init.sql"

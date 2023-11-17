@@ -7,5 +7,5 @@ fi
 
 pg_dump -d $1 -f "$1.backup" && \
 psql -c "drop database $1" && \
-psql -c "create database $1" && \
+psql -c "create database $1 owner $(whoami)" && \
 psql -d $1 -f "./init.sql"

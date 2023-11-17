@@ -347,8 +347,10 @@ BEGIN
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
             pulselength = p_pulselength
-        WHERE sensorid = p_sensorid
-        RETURNING sensorid INTO r_sensorid;
+        WHERE
+            sensorid = p_sensorid
+        RETURNING
+            sensorid INTO r_sensorid;
 
         IF FOUND THEN
             RETURN r_sensorid;
@@ -417,8 +419,10 @@ BEGIN
         adpgain = p_adpgain,
         pulsegain = p_pulsegain,
         pulselength = p_pulselength
-    RETURNING sensorid INTO r_sensorid;
-    RETURN r_sensorid;
+    RETURNING
+        sensorid INTO r_sensorid;
+    RETURN
+        r_sensorid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -531,9 +535,11 @@ BEGIN
         p_pulselength
     )
     ON CONFLICT (sensorname)
-    DO NOTHING
-    RETURNING sensorid INTO r_sensorid;
-    RETURN r_sensorid;
+        DO NOTHING
+    RETURNING
+        sensorid INTO r_sensorid;
+    RETURN
+        r_sensorid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -677,7 +683,7 @@ DECLARE
     r_lineid INTEGER;
 BEGIN
     SELECT insert_sensorslines_with_update (
-        p_lineid => l.lineid,
+        --p_lineid => l.lineid,
         p_sensorid => l.sensorid,
         p_linename => l.linename,
         p_linefullname => l.linefullname,
@@ -772,7 +778,7 @@ DECLARE
     r_lineid INTEGER;
 BEGIN
     SELECT insert_sensorslines_without_update (
-        p_lineid => l.lineid,
+        --p_lineid => l.lineid,
         p_sensorid => l.sensorid,
         p_linename => l.linename,
         p_linefullname => l.linefullname,
@@ -1147,7 +1153,7 @@ DECLARE
   r_zoneid INTEGER;
 BEGIN
     SELECT insert_zones_with_update (
-        p_zoneid => z.zoneid,
+        --p_zoneid => z.zoneid,
         p_extzoneid => z.extzoneid,
         p_lineid => z.lineid,
         p_sensorid => z.sensorid,
@@ -1254,7 +1260,7 @@ DECLARE
     r_zoneid INTEGER;
 BEGIN
     SELECT insert_zones_without_update (
-        p_zoneid => z.zoneid,
+        --p_zoneid => z.zoneid,
         p_extzoneid => z.extzoneid,
         p_lineid => z.lineid,
         p_sensorid => z.sensorid,
