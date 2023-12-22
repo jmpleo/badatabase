@@ -1,3 +1,4 @@
+-- main.sql --
 CREATE TABLE IF NOT EXISTS badeviceinfo (
     deviceid VARCHAR(16) PRIMARY KEY,
     devicename VARCHAR(32) NOT NULL UNIQUE,
@@ -94,13 +95,43 @@ CREATE TABLE IF NOT EXISTS zones (
     CONSTRAINT zonename_unique UNIQUE(lineid, zonename)
 );
 
+CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+
+CREATE TABLE IF NOT EXISTS sensorslines_audit_log (
+    line_id INTEGER NOT NULL,
+    old_row_data JSONB,
+    new_row_data JSONB,
+    dml_type dml_type NOT NULL,
+    dml_timestamp TIMESTAMP NOT NULL,
+    dml_created_by VARCHAR(255) NOT NULL,
+    PRIMARY KEY (line_id, dml_type, dml_timestamp)
+);
+
+
+CREATE TABLE IF NOT EXISTS zones_audit_log (
+    zone_id INTEGER NOT NULL,
+    old_row_data JSONB,
+    new_row_data JSONB,
+    dml_type DML_TYPE NOT NULL,
+    dml_timestamp TIMESTAMP NOT NULL,
+    dml_created_by VARCHAR(255) NOT NULL,
+    PRIMARY KEY (line_id, dml_type, dml_timestamp)
+);
+
+
+
+
 CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
 
-CREATE ROLE labler WITH LOGIN PASSWORD 'labler';
-GRANT SELECT, INSERT, UPDATE ON sensorslines TO labler;
-GRANT SELECT, INSERT, UPDATE ON zones TO labler;
+CREATE ROLE zones_labler WITH LOGIN PASSWORD 'zones_labler';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO zones_labler;
+GRANT INSERT ON zones TO zones_labler;
+
+CREATE ROLE sensorslines_labler WITH LOGIN PASSWORD 'sensorslines_labler';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO sensorslines_labler;
+GRANT INSERT ON sensorslines TO sensorslines_labler;
 
 CREATE ROLE auditor WITH LOGIN PASSWORD 'auditor';
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
@@ -1371,3 +1402,158 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE TRIGGER sensorslines_audit_log_trigger
+    AFTER
+        INSERT OR UPDATE OR DELETE
+    ON
+        sensorslines
+    FOR
+        EACH ROW
+    EXECUTE FUNCTION
+        sensorslines_audit_log_trigger_handle();
+
+
+CREATE OR REPLACE FUNCTION sensorslines_audit_log_trigger_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+   IF (TG_OP = 'INSERT') THEN
+        INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.lineid,
+            null,
+            to_jsonb(NEW),
+            'INSERT',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.lineid,
+            to_jsonb(OLD),
+            to_jsonb(NEW),
+            'UPDATE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'DELETE') THEN
+       INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            OLD.lineid,
+            to_jsonb(OLD),
+            null,
+            'DELETE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN OLD;
+
+   END IF;
+
+END;
+$$
+LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE TRIGGER zones_audit_log_trigger
+    AFTER
+        INSERT OR UPDATE OR DELETE
+    ON
+        zones
+    FOR
+        EACH ROW
+    EXECUTE FUNCTION
+        zones_audit_log_trigger_handle();
+
+
+CREATE OR REPLACE FUNCTION zones_audit_log_trigger_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+   IF (TG_OP = 'INSERT') THEN
+        INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.zoneid,
+            null,
+            to_jsonb(NEW),
+            'INSERT',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.zoneid,
+            to_jsonb(OLD),
+            to_jsonb(NEW),
+            'UPDATE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'DELETE') THEN
+       INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            OLD.zoneid,
+            to_jsonb(OLD),
+            null,
+            'DELETE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN OLD;
+
+   END IF;
+
+END;
+$$
+LANGUAGE plpgsql;
