@@ -1,5 +1,5 @@
 build
-sql/*.backup
+*.backup
 .cache
 compile_commands.json
 *.so
