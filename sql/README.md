@@ -84,5 +84,65 @@ CREATE POLICY view_sensor_1 ON zones FOR
     SELECT TO auditor_sensor_1 USING (sensorid = 1);
 ```
 
-## Политика аудита
+## Политика аудита и тщательного аудита FGA
+
+Создадим основные таблицы аудита таблиц разметки, а также триггеры для обработки соответствующих действий.
+
+```postgresql
+CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+
+CREATE TABLE IF NOT EXISTS sensorslines_audit_log (
+    line_id INTEGER NOT NULL,
+    old_row_data JSONB,
+    new_row_data JSONB,
+    dml_type dml_type NOT NULL,
+    dml_timestamp TIMESTAMP NOT NULL,
+    dml_created_by VARCHAR(255) NOT NULL,
+    PRIMARY KEY (line_id, dml_type, dml_timestamp)
+);
+
+
+CREATE TABLE IF NOT EXISTS zones_audit_log (
+    zone_id INTEGER NOT NULL,
+    old_row_data JSONB,
+    new_row_data JSONB,
+    dml_type DML_TYPE NOT NULL,
+    dml_timestamp TIMESTAMP NOT NULL,
+    dml_created_by VARCHAR(255) NOT NULL,
+    PRIMARY KEY (line_id, dml_type, dml_timestamp)
+);
+```
+
+```postgresql
+CREATE OR REPLACE TRIGGER sensorslines_audit_log_trigger
+    AFTER
+        INSERT OR UPDATE OR DELETE
+    ON
+        sensorslines
+    FOR
+        EACH ROW
+    EXECUTE FUNCTION
+        sensorslines_audit_log_trigger_handle();
+
+
+CREATE OR REPLACE TRIGGER zones_audit_log_trigger
+    AFTER
+        INSERT OR UPDATE OR DELETE
+    ON
+        zones
+    FOR
+        EACH ROW
+    EXECUTE FUNCTION
+        zones_audit_log_trigger_handle();
+```
+
+Для аудита уровня БД необходимо выставить параметр `log_statement=all` в конфигурационном файле `postgresql.conf`.
+
+И можно увидеть логи всех действий в postgres:
+
+```bash
+sudo cat /var/log/postgresql/postgresql-<version>-main.log
+```
+
+## Контроль целостности
 
