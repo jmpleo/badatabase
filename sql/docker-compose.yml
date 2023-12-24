@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  postgres:
+    container_name: badatabase
+    # image: "postgres:15.5-alpine"
+    build: .
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5554:5432"
+
+#volumes:
+  #pgdata:

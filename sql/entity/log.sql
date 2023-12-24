@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS zones_audit_log (
     dml_type DML_TYPE NOT NULL,
     dml_timestamp TIMESTAMP NOT NULL,
     dml_created_by VARCHAR(255) NOT NULL,
-    PRIMARY KEY (line_id, dml_type, dml_timestamp)
+    PRIMARY KEY (zone_id, dml_type, dml_timestamp)
 );
 
 
