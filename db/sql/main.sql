@@ -121,39 +121,6 @@ CREATE TABLE IF NOT EXISTS zones_audit_log (
 
 
 
-CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
-
-CREATE ROLE zones_labler WITH LOGIN PASSWORD 'zones_labler';
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO zones_labler;
-GRANT INSERT ON zones TO zones_labler;
-
-CREATE ROLE sensorslines_labler WITH LOGIN PASSWORD 'sensorslines_labler';
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO sensorslines_labler;
-GRANT INSERT ON sensorslines TO sensorslines_labler;
-
-CREATE ROLE auditor WITH LOGIN PASSWORD 'auditor';
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
-ALTER TABLE sweepdatalorenz
-ADD COLUMN IF NOT EXISTS shc REAL NOT NULL DEFAULT 0;
-
-ALTER TABLE sensors
-DROP CONSTRAINT IF EXISTS sensorname_unique;
-ALTER TABLE sensors
-ADD CONSTRAINT sensorname_unique UNIQUE(sensorname);
-
-ALTER TABLE sensorslines
-DROP CONSTRAINT IF EXISTS linename_unique;
-ALTER TABLE sensorslines
-ADD CONSTRAINT linename_unique UNIQUE(sensorid, linename);
-
-ALTER TABLE zones
-DROP CONSTRAINT IF EXISTS zonename_unique;
-ALTER TABLE zones
-ADD CONSTRAINT zonename_unique UNIQUE(lineid, zonename);
-ALTER TABLE zones
-ADD COLUMN IF NOT EXISTS extzoneid INTEGER NOT NULL DEFAULT 0;
 --DROP FUNCTION IF EXISTS fetch_sensorslines (REFCURSOR);
 CREATE OR REPLACE FUNCTION fetch_sensorslines (cur REFCURSOR)
 RETURNS SETOF sensorslines AS $$
@@ -1558,3 +1525,46 @@ CREATE OR REPLACE TRIGGER zones_audit_log_trigger
         zones_audit_log_trigger_handle();
 
 
+CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
+
+CREATE ROLE zones_labler WITH LOGIN PASSWORD 'zones_labler';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO zones_labler;
+GRANT INSERT ON zones TO zones_labler;
+
+CREATE ROLE sensorslines_labler WITH LOGIN PASSWORD 'sensorslines_labler';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO sensorslines_labler;
+GRANT INSERT ON sensorslines TO sensorslines_labler;
+
+CREATE ROLE auditor WITH LOGIN PASSWORD 'auditor';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
+CREATE USER zones_labler_sensor_1 WITH PASSWORD 'zones_labler_sensor_1';
+GRANT zones_labler to zones_labler_sensor_1;
+
+CREATE USER sensorslines_labler_sensor_1 WITH PASSWORD 'sensorslines_labler_sensor_1';
+GRANT sensorslines_labler to sensorslines_labler_sensor_1;
+
+CREATE USER auditor_sensor_1 WITH PASSWORD 'auditor_sensor_1';
+GRANT auditor to auditor_sensor_1;
+
+ALTER TABLE sensorslines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE zones ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY view_sensor_1 ON sensorslines FOR
+    SELECT TO sensorslines_labler_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY view_sensor_1 ON zones FOR
+    SELECT TO zones_labler_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY view_all ON sensorslines FOR
+    ALL TO admin USING (TRUE);
+
+CREATE POLICY view_all ON zones FOR
+    ALL TO admin USING (TRUE);
+
+CREATE POLICY view_sensor_1 ON sensorslines FOR
+    SELECT TO auditor_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY view_sensor_1 ON zones FOR
+    SELECT TO auditor_sensor_1 USING (sensorid = 1);

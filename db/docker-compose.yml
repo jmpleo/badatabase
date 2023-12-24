@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  postgres:
+  badatabase:
     container_name: badatabase
     # image: "postgres:15.5-alpine"
     build: .
