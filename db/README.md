@@ -40,7 +40,7 @@ docker-compose up
 
 ### ER-диаграмма
 
-![diagl](/home/j/proj/badatabase/diagl.png)
+![diagl](./img/diagl.png)
 
 ### Ролевая модель безопасности
 
@@ -160,7 +160,7 @@ CREATE OR REPLACE TRIGGER zones_audit_log_trigger
 
 Для аудита уровня БД необходимо выставить параметр `log_statement=all` в конфигурационном файле `postgresql.conf`.
 
-И можно увидеть логи всех действий в postgres:
+Тогда можно бедт наблюдать логирование всех запросов к БД:
 
 ```bash
 sudo cat /var/log/postgresql/postgresql-<version>-main.log
@@ -168,3 +168,4 @@ sudo cat /var/log/postgresql/postgresql-<version>-main.log
 
 ### Контроль целостности
 
+Свзяность таблиц и ограничения, задаваемые в скриптах `entity/*.sql`, обеспечивают декларативный контроль целостности.

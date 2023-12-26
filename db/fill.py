@@ -1,3 +1,4 @@
+import os
 import argparse
 import random
 import psycopg2
@@ -184,16 +185,18 @@ def random_sweep(fake, p_sensorid, p_sensorname):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', type=str, help='')
-    parser.add_argument('--port', type=str, help='')
-    parser.add_argument('--dbname', type=str, help='')
-    parser.add_argument('--user', type=str, help='')
-    parser.add_argument('--password', type=str, help='')
+    parser.add_argument('--host', type=str, help='', default=os.getenv("DATABASE_HOST"))
+    parser.add_argument('--port', type=str, help='', default=os.getenv("DATABASE_PORT"))
+    parser.add_argument('--dbname', type=str, help='', default=os.getenv("DATABASE_NAME"))
+    parser.add_argument('--user', type=str, help='', default=os.getenv("DATABASE_USER"))
+    parser.add_argument('--password', type=str, help='', default=os.getenv("DATABASE_PASSWORD"))
     parser.add_argument('--devices', type=int, help='', default=0)
     parser.add_argument('--sensors', type=int, help='', default=0)
     parser.add_argument('--sweeps', type=int, help='', default=0)
 
     args = parser.parse_args()
+
+    faker = Faker()
 
     conn = psycopg2.connect(
         host=args.host,
@@ -203,52 +206,52 @@ if __name__ == "__main__":
         password=args.password
     )
 
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    faker = Faker()
+        for i in range(args.devices):
+            cur.callproc(f"insert_badeviceinfo_with_update", random_badevice(faker))
+            print(f"device {i+1}/{args.devices}", end='\r')
+        print("\033[Kdevices ... done")
 
-    print("\ndevices")
-    for i in range(args.devices):
-        cur.callproc(f"insert_badeviceinfo_with_update", random_badevice(faker))
-        print(f"{i+1}/{args.devices}", end='\r')
+        for i in range(args.sensors):
+            cur.callproc("insert_sensors_without_update", random_sensor(faker))
+            print(f"sensor {i+1}/{args.sensors}", end='\r')
+        print("\033[Ksensors ... done")
 
-    print("\nsensors")
-    for i in range(args.sensors):
-        cur.callproc("insert_sensors_without_update", random_sensor(faker))
-        print(f"{i+1}/{args.sensors}", end='\r')
+        #print("\nlines...")
+        #for _ in range(100):
+        #    for sensorid in range(10):
+        #        cur.callproc("insert_sensorslines_without_update", random_line(faker, sensorid))
+        #        print(f"{i}/1000", end='\r')
+        #print()
 
-    #print("\nlines...")
-    #for _ in range(100):
-    #    for sensorid in range(10):
-    #        cur.callproc("insert_sensorslines_without_update", random_line(faker, sensorid))
-    #        print(f"{i}/1000", end='\r')
-    #print()
+        #print("\nzones...")
+        #for i in range(1000):
+        #    cur.execute(
+        #        f"select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1)"
+        #        " from sensorslines l"
+        #        " join sensors s on s.sensorid = l.sensorid"
+        #        " order by random() limit 1"
+        #    )
+        #    lid, sid, did = cur.fetchone()
+        #    cur.callproc("insert_zones_without_update", random_zone(faker, lid, sid, did))
+        #    print(f"{i}/1000", end='\r')
 
-    #print("\nzones...")
-    #for i in range(1000):
-    #    cur.execute(
-    #        f"select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1)"
-    #        " from sensorslines l"
-    #        " join sensors s on s.sensorid = l.sensorid"
-    #        " order by random() limit 1"
-    #    )
-    #    lid, sid, did = cur.fetchone()
-    #    cur.callproc("insert_zones_without_update", random_zone(faker, lid, sid, did))
-    #    print(f"{i}/1000", end='\r')
-
-    cur.execute("select count(*) from sensors");
-    row = cur.fetchone()
-    if row and row[0] > 1:
-        print("\nsweeps")
+        #cur.execute("select count(*) from sensors");
+        #row = cur.fetchone()
         for i in range(args.sweeps):
             cur.execute("select sensorid, sensorname from sensors order by random() limit 1");
             sid, sname = cur.fetchone()
             cur.callproc("insert_sweepdatalorenz_without_update", random_sweep(faker, sid, sname))
-            print(f"{i+1}/{args.sweeps}", end='\r')
+            print(f"sweep {i+1}/{args.sweeps}", end='\r')
+        print("\033[Ksweeps ... done")
 
-    print("\nfinished")
+        conn.commit()
 
-    conn.commit()
+    except psycopg2.Error as e:
+        print(e.diag.message_primary)
+
 
     cur.close()
     conn.close()
