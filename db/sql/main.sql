@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS sensors (
 
 CREATE TABLE IF NOT EXISTS sensorslines (
     lineid SERIAL PRIMARY KEY,
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
     linename VARCHAR(32) NOT NULL,
     linefullname VARCHAR(128) NOT NULL DEFAULT '',
     linetype INTEGER NOT NULL,
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS sensorslines (
 CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     sweepid SERIAL PRIMARY KEY,
     sweeptime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    sensorname VARCHAR(32) NOT NULL, -- REFERENCES sensors(sensorname),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
+    sensorname VARCHAR(32) NOT NULL REFERENCES sensors(sensorname),
     average INTEGER NOT NULL,
     freqstart DOUBLE PRECISION NOT NULL,
     freqstep DOUBLE PRECISION NOT NULL,
@@ -70,15 +70,17 @@ CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     datalorenz_w REAL[] NOT NULL,
     datalorenz_y0 REAL[] NOT NULL,
     datalorenz_a REAL[] NOT NULL,
-    datalorenz_err REAL[] NOT NULL
+    datalorenz_err REAL[] NOT NULL,
+
+    CONSTRAINT sweepdatalorenz_unique UNIQUE(sensorid, sweeptime)
 );
 
 CREATE TABLE IF NOT EXISTS zones (
     zoneid SERIAL PRIMARY KEY,
     extzoneid INTEGER NOT NULL DEFAULT 0,
-    lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),
+    lineid INTEGER NOT NULL REFERENCES sensorslines(lineid),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
+    deviceid VARCHAR(16) NOT NULL REFERENCES badeviceinfo(deviceid),
     zonename VARCHAR(32) NOT NULL,
     zonefullname VARCHAR(128) NOT NULL DEFAULT '',
     zonetype INTEGER NOT NULL,
@@ -175,6 +177,141 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION zones_audit_log_trigger_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+   IF (TG_OP = 'INSERT') THEN
+        INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.zoneid,
+            null,
+            to_jsonb(NEW),
+            'INSERT',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.zoneid,
+            to_jsonb(OLD),
+            to_jsonb(NEW),
+            'UPDATE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'DELETE') THEN
+       INSERT INTO zones_audit_log (
+            zone_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            OLD.zoneid,
+            to_jsonb(OLD),
+            null,
+            'DELETE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN OLD;
+
+   END IF;
+
+END;
+$$
+LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION sensorslines_audit_log_trigger_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+   IF (TG_OP = 'INSERT') THEN
+        INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.lineid,
+            null,
+            to_jsonb(NEW),
+            'INSERT',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            NEW.lineid,
+            to_jsonb(OLD),
+            to_jsonb(NEW),
+            'UPDATE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN NEW;
+
+   ELSIF (TG_OP = 'DELETE') THEN
+       INSERT INTO sensorslines_audit_log (
+            line_id,
+            old_row_data,
+            new_row_data,
+            dml_type,
+            dml_timestamp,
+            dml_created_by
+        )
+        VALUES (
+            OLD.lineid,
+            to_jsonb(OLD),
+            null,
+            'DELETE',
+            CURRENT_TIMESTAMP,
+            (SELECT USER)
+        );
+        RETURN OLD;
+
+   END IF;
+
+END;
+$$
+LANGUAGE plpgsql;
+
 
 
 /*
@@ -1298,7 +1435,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS cur_select_sensorslines(REFCURSOR, INTEGER);
+-- DROP FUNCTION IF EXISTS cur_select_sensorslines(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_sensorslines (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -1315,7 +1452,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR);
+-- DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR);
 CREATE OR REPLACE FUNCTION cur_select_sensors (cur_name REFCURSOR)
 RETURNS REFCURSOR AS $$
 BEGIN
@@ -1325,7 +1462,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR, INTEGER);
+-- DROP FUNCTION IF EXISTS cur_select_sensors(REFCURSOR, INTEGER);
 CREATE OR REPLACE FUNCTION cur_select_zones (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL
@@ -1342,7 +1479,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-DROP FUNCTION IF EXISTS cur_select_sweepdatalorenz (REFCURSOR, INTEGER, TIMESTAMP);
+-- DROP FUNCTION IF EXISTS cur_select_sweepdatalorenz (REFCURSOR, INTEGER, TIMESTAMP);
 CREATE OR REPLACE FUNCTION cur_select_sweepdatalorenz (
     cur_name REFCURSOR,
     p_sensorid INTEGER DEFAULT NULL,
@@ -1375,140 +1512,6 @@ BEGIN
     RETURN cur_name;
 END;
 $$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION zones_audit_log_trigger_handle()
-RETURNS TRIGGER AS $$
-BEGIN
-   IF (TG_OP = 'INSERT') THEN
-        INSERT INTO zones_audit_log (
-            zone_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            NEW.zoneid,
-            null,
-            to_jsonb(NEW),
-            'INSERT',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN NEW;
-
-   ELSIF (TG_OP = 'UPDATE') THEN
-        INSERT INTO zones_audit_log (
-            zone_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            NEW.zoneid,
-            to_jsonb(OLD),
-            to_jsonb(NEW),
-            'UPDATE',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN NEW;
-
-   ELSIF (TG_OP = 'DELETE') THEN
-       INSERT INTO zones_audit_log (
-            zone_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            OLD.zoneid,
-            to_jsonb(OLD),
-            null,
-            'DELETE',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN OLD;
-
-   END IF;
-
-END;
-$$
-LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION sensorslines_audit_log_trigger_handle()
-RETURNS TRIGGER AS $$
-BEGIN
-   IF (TG_OP = 'INSERT') THEN
-        INSERT INTO sensorslines_audit_log (
-            line_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            NEW.lineid,
-            null,
-            to_jsonb(NEW),
-            'INSERT',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN NEW;
-
-   ELSIF (TG_OP = 'UPDATE') THEN
-        INSERT INTO sensorslines_audit_log (
-            line_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            NEW.lineid,
-            to_jsonb(OLD),
-            to_jsonb(NEW),
-            'UPDATE',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN NEW;
-
-   ELSIF (TG_OP = 'DELETE') THEN
-       INSERT INTO sensorslines_audit_log (
-            line_id,
-            old_row_data,
-            new_row_data,
-            dml_type,
-            dml_timestamp,
-            dml_created_by
-        )
-        VALUES (
-            OLD.lineid,
-            to_jsonb(OLD),
-            null,
-            'DELETE',
-            CURRENT_TIMESTAMP,
-            (SELECT USER)
-        );
-        RETURN OLD;
-
-   END IF;
-
-END;
-$$
-LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE TRIGGER sensorslines_audit_log_trigger

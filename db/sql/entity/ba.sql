@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS sensors (
 
 CREATE TABLE IF NOT EXISTS sensorslines (
     lineid SERIAL PRIMARY KEY,
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
     linename VARCHAR(32) NOT NULL,
     linefullname VARCHAR(128) NOT NULL DEFAULT '',
     linetype INTEGER NOT NULL,
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS sensorslines (
 CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     sweepid SERIAL PRIMARY KEY,
     sweeptime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    sensorname VARCHAR(32) NOT NULL, -- REFERENCES sensors(sensorname),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
+    sensorname VARCHAR(32) NOT NULL REFERENCES sensors(sensorname),
     average INTEGER NOT NULL,
     freqstart DOUBLE PRECISION NOT NULL,
     freqstep DOUBLE PRECISION NOT NULL,
@@ -69,15 +69,17 @@ CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     datalorenz_w REAL[] NOT NULL,
     datalorenz_y0 REAL[] NOT NULL,
     datalorenz_a REAL[] NOT NULL,
-    datalorenz_err REAL[] NOT NULL
+    datalorenz_err REAL[] NOT NULL,
+
+    CONSTRAINT sweepdatalorenz_unique UNIQUE(sensorid, sweeptime)
 );
 
 CREATE TABLE IF NOT EXISTS zones (
     zoneid SERIAL PRIMARY KEY,
     extzoneid INTEGER NOT NULL DEFAULT 0,
-    lineid INTEGER NOT NULL, -- REFERENCES sensorslines(lineid),
-    sensorid INTEGER NOT NULL, -- REFERENCES sensors(sensorid),
-    deviceid VARCHAR(16) NOT NULL, -- REFERENCES badeviceinfo(deviceid),
+    lineid INTEGER NOT NULL REFERENCES sensorslines(lineid),
+    sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
+    deviceid VARCHAR(16) NOT NULL REFERENCES badeviceinfo(deviceid),
     zonename VARCHAR(32) NOT NULL,
     zonefullname VARCHAR(128) NOT NULL DEFAULT '',
     zonetype INTEGER NOT NULL,

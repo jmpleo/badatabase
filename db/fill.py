@@ -46,8 +46,8 @@ def random_sensor(fake):
 def random_badevice(fake):
     p_deviceid = fake.random_int(min=1000, max=1000000)
     p_devicename = fake.word()
-    p_adcfreq = fake.random_int(min=100, max=100000000)
-    p_startdiscret = fake.random_int(min=100, max=100000)
+    p_adcfreq = fake.random_int(min=10, max=10000)
+    p_startdiscret = fake.random_int(min=0, max=10)
     return (
         str(p_deviceid),
         p_devicename,
