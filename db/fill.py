@@ -1,16 +1,16 @@
-import psycopg2
-from faker import Faker
-import random
-from datetime import datetime, timedelta
 import argparse
+import random
+import psycopg2
 
+from datetime import datetime, timedelta
+from faker import Faker
 
 
 def random_sensor(fake):
     p_sensorname = fake.name()
     p_flagsensoron = fake.boolean()
     p_flagusingswith = fake.boolean()
-    p_extracmdscript = fake.file_name()
+    p_extracmdscript = fake.name()
     p_switchsensorname = fake.name()
     p_average = fake.random_int(min=0, max=100)
     p_freqstart = fake.random_int(min=0, max=1000)
@@ -19,7 +19,6 @@ def random_sensor(fake):
     p_sensorlength = fake.random_int(min=0, max=100)
     p_sensorpointlength = fake.random_int(min=0, max=100)
     p_sensorstartpoint = fake.random_int(min=0, max=100)
-    p_sensorendpoint = fake.random_int(min=int(p_sensorstartpoint), max=100)
     p_cwatt = fake.random_int(min=0, max=100)
     p_adpgain = fake.random_int(min=0, max=100)
     p_pulsegain = fake.random_int(min=0, max=100)
@@ -36,8 +35,6 @@ def random_sensor(fake):
         p_freqstop,
         p_sensorlength,
         p_sensorpointlength,
-        p_sensorstartpoint,
-        p_sensorendpoint,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -125,36 +122,38 @@ def random_sweep(fake, p_sensorid, p_sensorname):
     random_date = start_date + timedelta(days=random_days)
 
     p_sweeptime = random_date.strftime('%Y-%m-%d %H:%M:%S')
-    p_average = fake.random_int(min=10, max=100000)
-    p_freqstart = fake.pyfloat(8, 5)
-    p_freqstep = fake.pyfloat(8, 5)
-    p_freqstop = fake.pyfloat(8, 5)
-    p_sensorlength = fake.random_int(min=100, max=1000000)
-    p_sensorpointlength = fake.random_int(min=100, max=1000000)
-    p_sensorstartpoint = fake.random_int(min=100, max=1000000)
-    p_sensorendpoint = fake.random_int(min=100, max=1000000)
-    p_cwatt = fake.random_int(min=100, max=1000000)
-    p_adpgain = fake.random_int(min=100, max=1000000)
-    p_pulsegain = fake.random_int(min=100, max=1000000)
-    p_pulselength = fake.random_int(min=100, max=1000000)
+    p_average = fake.random_int(min=10, max=100)
+    p_freqstart = float(fake.random_int(min=1000, max=2000))
+    p_freqstep = float(fake.random_int(min=10, max=100))
+    p_freqstop = float(fake.random_int(min=1000, max=2000))
+    p_sensorlength = fake.random_int(min=0, max=10000)
+    p_sensorpointlength = 10000
+    p_sensorstartpoint = fake.random_int(min=0, max=100)
+    p_sensorendpoint = p_sensorstartpoint + p_sensorpointlength
+    p_cwatt = fake.random_int(min=0, max=10000)
+    p_adpgain = fake.random_int(min=-100, max=100)
+    p_pulsegain = fake.random_int(min=-100, max=100)
+    p_pulselength = fake.random_int(min=-100, max=100)
     p_datalorenz = [
-        round(random.uniform(-1, 1), 2)
+        float(random.randint(-1000, 1000))
         for i in range(p_sensorpointlength)
     ]
-    p_shc = round(random.uniform(-1, 1), 2)
+    p_shc = float(random.randint(-100, 100))
     p_datalorenz_w = [
-        round(random.uniform(-1, 1), 2)
+        float(random.randint(-1000, 1000))
         for i in range(p_sensorpointlength)
     ]
     p_datalorenz_y0 = [
-        round(random.uniform(-1, 1), 2)
+        float(random.randint(-1000, 1000))
         for i in range(p_sensorpointlength)
     ]
     p_datalorenz_a = [
-        round(random.uniform(-1, 1), 2)
+        float(random.randint(-1000, 1000))
         for i in range(p_sensorpointlength)
     ]
-    p_datalorenz_err = [ round(random.uniform(-1, 1), 2) for i in range(p_sensorpointlength)
+    p_datalorenz_err = [
+        float(random.randint(-1000, 1000))
+        for i in range(p_sensorpointlength)
     ]
     return (
         p_sweeptime,
@@ -182,60 +181,74 @@ def random_sweep(fake, p_sensorid, p_sensorname):
 
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('dbname', help='')
+if __name__ == "__main__":
 
-args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', type=str, help='')
+    parser.add_argument('--port', type=str, help='')
+    parser.add_argument('--dbname', type=str, help='')
+    parser.add_argument('--user', type=str, help='')
+    parser.add_argument('--password', type=str, help='')
+    parser.add_argument('--devices', type=int, help='', default=0)
+    parser.add_argument('--sensors', type=int, help='', default=0)
+    parser.add_argument('--sweeps', type=int, help='', default=0)
 
-conn = psycopg2.connect(
-    host="localhost",
-    database=args.dbname,
-    user="j",
-    password="j"
-)
+    args = parser.parse_args()
 
-cur = conn.cursor()
-
-faker = Faker()
-
-print("\ndevices...")
-for i in range(1):
-    cur.callproc("insert_badeviceinfo_with_update", random_badevice(faker))
-    print(f"{i}/1", end='\r')
-
-print("\nsensors...")
-for i in range(10):
-    cur.callproc("insert_sensors_without_update", random_sensor(faker))
-    print(f"{i}/10", end='\r')
-
-print("\nlines...")
-for s in range(10):
-    for i in range(5):
-        cur.callproc("insert_sensorslines_without_update", random_line(faker, s+1))
-        print(f"{i}/1000", end='\r')
-
-print("\nzones...")
-for i in range(1000):
-    cur.execute(
-        f"select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1)"
-        " from sensorslines l"
-        " join sensors s on s.sensorid = l.sensorid"
-        " order by random() limit 1"
+    conn = psycopg2.connect(
+        host=args.host,
+        port=args.port,
+        database=args.dbname,
+        user=args.user,
+        password=args.password
     )
-    lid, sid, did = cur.fetchone()
-    cur.callproc("insert_zones_without_update", random_zone(faker, lid, sid, did))
-    print(f"{i}/1000", end='\r')
 
-"""
-print("\nsweep:")
-for i in range(5):
-    cur.execute("select sensorid, sensorname from sensors order by random() limit 1");
-    sid, sname = cur.fetchone()
-    cur.callproc("insert_sweepdatalorenz_without_update", random_sweep(faker, sid, sname))
-    print(f"{i}/5", end='\r')
-"""
+    cur = conn.cursor()
 
-conn.commit()
+    faker = Faker()
 
-cur.close()
-conn.close()
+    print("\ndevices")
+    for i in range(args.devices):
+        cur.callproc(f"insert_badeviceinfo_with_update", random_badevice(faker))
+        print(f"{i+1}/{args.devices}", end='\r')
+
+    print("\nsensors")
+    for i in range(args.sensors):
+        cur.callproc("insert_sensors_without_update", random_sensor(faker))
+        print(f"{i+1}/{args.sensors}", end='\r')
+
+    #print("\nlines...")
+    #for _ in range(100):
+    #    for sensorid in range(10):
+    #        cur.callproc("insert_sensorslines_without_update", random_line(faker, sensorid))
+    #        print(f"{i}/1000", end='\r')
+    #print()
+
+    #print("\nzones...")
+    #for i in range(1000):
+    #    cur.execute(
+    #        f"select l.lineid, s.sensorid, (select deviceid from badeviceinfo limit 1)"
+    #        " from sensorslines l"
+    #        " join sensors s on s.sensorid = l.sensorid"
+    #        " order by random() limit 1"
+    #    )
+    #    lid, sid, did = cur.fetchone()
+    #    cur.callproc("insert_zones_without_update", random_zone(faker, lid, sid, did))
+    #    print(f"{i}/1000", end='\r')
+
+    cur.execute("select count(*) from sensors");
+    row = cur.fetchone()
+    if row and row[0] > 1:
+        print("\nsweeps")
+        for i in range(args.sweeps):
+            cur.execute("select sensorid, sensorname from sensors order by random() limit 1");
+            sid, sname = cur.fetchone()
+            cur.callproc("insert_sweepdatalorenz_without_update", random_sweep(faker, sid, sname))
+            print(f"{i+1}/{args.sweeps}", end='\r')
+
+    print("\nfinished")
+
+    conn.commit()
+
+    cur.close()
+    conn.close()

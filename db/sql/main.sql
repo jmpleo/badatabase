@@ -95,7 +95,15 @@ CREATE TABLE IF NOT EXISTS zones (
     CONSTRAINT zonename_unique UNIQUE(lineid, zonename)
 );
 
-CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+
+DO $$
+BEGIN
+    IF NOT EXISTS ( SELECT 1 FROM pg_type WHERE typname = 'dml_type') THEN
+        CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+    END IF;
+END
+$$;
+
 
 CREATE TABLE IF NOT EXISTS sensorslines_audit_log (
     line_id INTEGER NOT NULL,
@@ -350,7 +358,7 @@ BEGIN
             sensorlength = p_sensorlength,
             sensorpointlength = p_sensorpointlength,
             sensorstartpoint = p_sensorstartpoint,
-            sensorendpoint = p_sensorendpoint,
+            sensorendpoint = (SELECT p_sensorpointlength - p_sensorstartpoint),
             cwatt = p_cwatt,
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
@@ -400,7 +408,7 @@ BEGIN
         p_sensorlength,
         p_sensorpointlength,
         p_sensorstartpoint,
-        p_sensorendpoint,
+        (SELECT p_sensorlength - p_sensorstartpoint),
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -422,7 +430,7 @@ BEGIN
         sensorlength = p_sensorlength,
         sensorpointlength = p_sensorpointlength,
         sensorstartpoint = p_sensorstartpoint,
-        sensorendpoint = p_sensorendpoint,
+        sensorendpoint = (SELECT p_sensorlength - p_sensorstartpoint),
         cwatt = p_cwatt,
         adpgain = p_adpgain,
         pulsegain = p_pulsegain,
@@ -536,7 +544,7 @@ BEGIN
         p_sensorlength,
         p_sensorpointlength,
         p_sensorstartpoint,
-        p_sensorendpoint,
+        (SELECT p_sensorlength - p_sensorstartpoint),
         p_cwatt,
         p_adpgain,
         p_pulsegain,

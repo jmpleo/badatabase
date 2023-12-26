@@ -1,4 +1,12 @@
-CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+
+DO $$
+BEGIN
+    IF NOT EXISTS ( SELECT 1 FROM pg_type WHERE typname = 'dml_type') THEN
+        CREATE TYPE dml_type AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+    END IF;
+END
+$$;
+
 
 CREATE TABLE IF NOT EXISTS sensorslines_audit_log (
     line_id INTEGER NOT NULL,

@@ -4,7 +4,7 @@ find_library(babase_LIBRARY NAMES babase PATHS ${BABASE_PATH}/lib)
 
 add_library(badatabase SHARED
     badatabase.cpp
-    query.cpp
+    #query.cpp
     sensor.cpp
     )
 

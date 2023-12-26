@@ -1,18 +1,17 @@
-#include "query.h"
-#include "config.h"
+//#include "query.h"
+//#include "config.h"
 
 
-using namespace badatabase;
+//using namespace badatabase;
 
-std::string Query::mainSQL = Query::readMainSQL(_DEFAULT_MAINSQL_PATH);
+//std::string Query::mainSQL = Query::readMainSQL(_DEFAULT_MAINSQL_PATH);
 
 
-/**
+/*
  * \brief Чтение файла содержащего по большей степени определения серверных
  * процедур.
  *
  * \param pathToMainSQL путь до скрипта.
- */
 std::string Query::readMainSQL(std::string pathToMainSQL)
 {
     std::ifstream scheme(pathToMainSQL);
@@ -26,4 +25,5 @@ std::string Query::readMainSQL(std::string pathToMainSQL)
     buffer << scheme.rdbuf();
     return buffer.str();
 }
+*/
 

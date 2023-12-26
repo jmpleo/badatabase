@@ -20,8 +20,6 @@ POSTGRES_DB=badatabase
 docker-compose up
 ```
 
-
-
 ## Отчет: Построение защищенных СУБД
 
 @jmpleo @1193221

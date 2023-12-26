@@ -43,9 +43,10 @@ bool BADataBase::isConnected()
         return false;
     }
     try {
-        return pqxx::nontransaction(*conn_).exec(
-            "SELECT TRUE FROM badeviceinfo LIMIT 1"
-        ).front().front().as<bool>(false);
+        return 0;
+        //return not pqxx::nontransaction(*conn_).exec(
+        //    "SELECT TRUE FROM badeviceinfo LIMIT 1"
+        //).empty();
     }
     catch (const std::exception &e) {
         return false;
@@ -66,9 +67,9 @@ bool BADataBase::setScheme()
     }
 
     try {
-        pqxx::work txn(*conn_);
-        txn.exec(Query::mainSQL);
-        txn.commit();
+        //pqxx::work txn(*conn_);
+        //txn.exec(Query::mainSQL);
+        //txn.commit();
         return true;
     }
     catch (const std::exception &e) {
@@ -188,10 +189,12 @@ BADeviceInfo BADataBase::getBADeviceInfo()
     try {
         pqxx::result res = pqxx::nontransaction(*conn_).exec(Query::selectFrom(Table::Device));
 
-        device.deviceId = res[0]["deviceid"].c_str();
-        device.deviceName = res[0]["devicename"].c_str();
-        device.adcFreq = res[0]["adcfreq"].as<long>(0);
-        device.startDiscret = res[0]["startdiscret"].as<int>(0);
+        if (not res.empty()) {
+            device.deviceId = res[0]["deviceid"].c_str();
+            device.deviceName = res[0]["devicename"].c_str();
+            device.adcFreq = res[0]["adcfreq"].as<long>(0);
+            device.startDiscret = res[0]["startdiscret"].as<int>(0);
+        }
 
         config.setDevice(connName_, device.deviceId);
 
