@@ -7,3 +7,4 @@ docs
 include/config.h
 pgdata
 .env
+deploy.sh

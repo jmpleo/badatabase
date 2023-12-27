@@ -1,10 +1,13 @@
 -- main.sql --
+
+
 CREATE TABLE IF NOT EXISTS badeviceinfo (
     deviceid VARCHAR(16) PRIMARY KEY,
     devicename VARCHAR(32) NOT NULL UNIQUE,
-    adcfreq INTEGER NOT NULL,
-    startdiscret INTEGER NOT NULL
+    adcfreq INTEGER NOT NULL CHECK (adcfreq >= 0),
+    startdiscret INTEGER NOT NULL CHECK (startdiscret >= 0)
 );
+
 
 CREATE TABLE IF NOT EXISTS sensors (
     sensorid SERIAL PRIMARY KEY,
@@ -15,19 +18,20 @@ CREATE TABLE IF NOT EXISTS sensors (
     extracmdscript VARCHAR(128) NOT NULL,
     switchsensorname VARCHAR(64) NOT NULL,
     comment VARCHAR(256) NOT NULL DEFAULT '',
-    average INTEGER NOT NULL,
-    freqstart DOUBLE PRECISION NOT NULL,
-    freqstep DOUBLE PRECISION NOT NULL,
+    average INTEGER NOT NULL CHECK (average >= 0),
+    freqstart DOUBLE PRECISION NOT NULL CHECK (freqstart >= 0),
+    freqstep DOUBLE PRECISION NOT NULL CHECK (freqstep >= 0),
     freqstop DOUBLE PRECISION NOT NULL,
     sensorlength INTEGER NOT NULL,
-    sensorpointlength INTEGER NOT NULL,
-    sensorstartpoint INTEGER NOT NULL,
-    sensorendpoint INTEGER NOT NULL,
+    sensorstartpoint INTEGER CHECK (sensorstartpoint >= 0),
+    sensorendpoint INTEGER CHECK (sensorendpoint >= 0),
+    sensorpointlength INTEGER CHECK (sensorpointlength >= 0),
     cwatt INTEGER NOT NULL,
     adpgain INTEGER NOT NULL,
     pulsegain INTEGER NOT NULL,
     pulselength INTEGER NOT NULL
 );
+
 
 CREATE TABLE IF NOT EXISTS sensorslines (
     lineid SERIAL PRIMARY KEY,
@@ -35,18 +39,19 @@ CREATE TABLE IF NOT EXISTS sensorslines (
     linename VARCHAR(32) NOT NULL,
     linefullname VARCHAR(128) NOT NULL DEFAULT '',
     linetype INTEGER NOT NULL,
-    startpoint INTEGER NOT NULL,
-    endpoint INTEGER NOT NULL,
+    startpoint INTEGER NOT NULL CHECK (startpoint >= 0),
+    endpoint INTEGER NOT NULL CHECK (endpoint >= 0),
     direct INTEGER NOT NULL,
-    lengthpoints INTEGER NOT NULL,
-    lengthmeters DOUBLE PRECISION NOT NULL,
+    lengthpoints INTEGER NOT NULL CHECK (lengthpoints >= 0),
+    lengthmeters DOUBLE PRECISION NOT NULL CHECK (lengthmeters >= 0),
     mhztemp20 DOUBLE PRECISION NOT NULL,
     tempcoeff DOUBLE PRECISION NOT NULL,
     defcoeff DOUBLE PRECISION NOT NULL,
     auxlineid INTEGER NOT NULL,
 
-    CONSTRAINT linename_unique UNIQUE(sensorid, linename)
+    CONSTRAINT linename_unique UNIQUE (sensorid, linename)
 );
+
 
 CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     sweepid SERIAL PRIMARY KEY,
@@ -54,26 +59,32 @@ CREATE TABLE IF NOT EXISTS sweepdatalorenz (
     sensorid INTEGER NOT NULL REFERENCES sensors(sensorid),
     sensorname VARCHAR(32) NOT NULL REFERENCES sensors(sensorname),
     average INTEGER NOT NULL,
-    freqstart DOUBLE PRECISION NOT NULL,
-    freqstep DOUBLE PRECISION NOT NULL,
+    freqstart DOUBLE PRECISION NOT NULL CHECK (freqstart >= 0),
+    freqstep DOUBLE PRECISION NOT NULL CHECK (freqstep >= 0),
     freqstop DOUBLE PRECISION NOT NULL,
-    sensorlength INTEGER NOT NULL,
-    sensorpointlength INTEGER NOT NULL,
-    sensorstartpoint INTEGER NOT NULL,
-    sensorendpoint INTEGER NOT NULL,
+    sensorlength INTEGER NOT NULL CHECK (sensorlength >= 0),
+    sensorpointlength INTEGER NOT NULL CHECK (sensorpointlength >= 0),
+    sensorstartpoint INTEGER NOT NULL CHECK (sensorstartpoint >= 0),
+    sensorendpoint INTEGER NOT NULL CHECK (sensorendpoint >= 0),
     cwatt INTEGER NOT NULL,
     adpgain INTEGER NOT NULL,
     pulsegain INTEGER NOT NULL,
-    pulselength INTEGER NOT NULL,
-    datalorenz REAL[] NOT NULL,
+    pulselength INTEGER NOT NULL, datalorenz REAL[] NOT NULL,
     shc REAL NOT NULL,
     datalorenz_w REAL[] NOT NULL,
     datalorenz_y0 REAL[] NOT NULL,
     datalorenz_a REAL[] NOT NULL,
     datalorenz_err REAL[] NOT NULL,
 
-    CONSTRAINT sweepdatalorenz_unique UNIQUE(sensorid, sweeptime)
+    CONSTRAINT sweepdatalorenz_unique UNIQUE(sensorid, sweeptime),
+    CONSTRAINT array_length CHECK (
+        array_length(datalorenz, 1) = array_length(datalorenz_w, 1)
+        AND array_length(datalorenz, 1) = array_length(datalorenz_y0, 1)
+        AND array_length(datalorenz, 1) = array_length(datalorenz_a, 1)
+        AND array_length(datalorenz, 1) = array_length(datalorenz_err, 1)
+    )
 );
+
 
 CREATE TABLE IF NOT EXISTS zones (
     zoneid SERIAL PRIMARY KEY,
@@ -96,6 +107,7 @@ CREATE TABLE IF NOT EXISTS zones (
 
     CONSTRAINT zonename_unique UNIQUE(lineid, zonename)
 );
+
 
 
 DO $$
@@ -314,6 +326,42 @@ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION sensor_points_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF
+        NEW.sensorstartpoint IS NOT NULL
+        AND NEW.sensorendpoint IS NOT NULL
+        AND NEW.sensorpointlength IS NULL
+    THEN
+        NEW.sensorpointlength := NEW.sensorendpoint - NEW.sensorstartpoint;
+    ELSIF
+        NEW.sensorstartpoint IS NOT NULL
+        AND NEW.sensorpointlength IS NOT NULL
+        AND NEW.sensorendpoint IS NULL
+    THEN
+        NEW.sensorendpoint := NEW.sensorstartpoint + NEW.sensorpointlength;
+    ELSIF
+        NEW.sensorendpoint IS NOT NULL
+        AND NEW.sensorpointlength IS NOT NULL
+        AND NEW.sensorstartpoint IS NULL
+    THEN
+        NEW.sensorstartpoint := NEW.sensorendpoint - NEW.sensorpointlength;
+    ELSIF
+        NEW.sensorendpoint IS NOT NULL
+        AND NEW.sensorpointlength IS NOT NULL
+        AND NEW.sensorstartpoint IS NOT NULL
+        AND NEW.sensorpointlength <> NEW.sensorendpoint - NEW.sensorstartpoint
+    THEN
+        RAISE EXCEPTION 'The sensor length does not match the specified start and end points';
+    ELSE
+        RAISE EXCEPTION 'You must specify at least two out of three parameters: start, end, length';
+    END IF;
+
+    RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
 /*
  *  Фунция осуществляет мягкую вставку устройства
  *  Если устройство с первичным ключом существует,
@@ -465,15 +513,16 @@ CREATE OR REPLACE FUNCTION insert_sensors_with_update (
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
   p_pulselength INTEGER,
+  p_sensorstartpoint INTEGER DEFAULT NULL,
+  p_sensorendpoint INTEGER DEFAULT NULL,
+  p_sensorpointlength INTEGER DEFAULT NULL,
   p_sensorid INTEGER DEFAULT NULL,
   p_sensorfname VARCHAR(128) DEFAULT '',
-  p_comment VARCHAR(256) DEFAULT '',
-  p_sensorstartpoint INTEGER DEFAULT 0
+  p_comment VARCHAR(256) DEFAULT ''
 ) RETURNS INT AS $$
 DECLARE
     r_sensorid INT;
@@ -493,9 +542,9 @@ BEGIN
             freqstep = p_freqstep,
             freqstop = p_freqstop,
             sensorlength = p_sensorlength,
-            sensorpointlength = p_sensorpointlength,
             sensorstartpoint = p_sensorstartpoint,
-            sensorendpoint = (SELECT p_sensorpointlength - p_sensorstartpoint),
+            sensorendpoint = p_sensorendpoint,
+            sensorpointlength = p_sensorpointlength,
             cwatt = p_cwatt,
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
@@ -523,9 +572,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -543,9 +592,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
-        (SELECT p_sensorlength - p_sensorstartpoint),
+        p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -565,9 +614,9 @@ BEGIN
         freqstep = p_freqstep,
         freqstop = p_freqstop,
         sensorlength = p_sensorlength,
-        sensorpointlength = p_sensorpointlength,
         sensorstartpoint = p_sensorstartpoint,
-        sensorendpoint = (SELECT p_sensorlength - p_sensorstartpoint),
+        sensorendpoint = p_sensorendpoint,
+        sensorpointlength = p_sensorpointlength,
         cwatt = p_cwatt,
         adpgain = p_adpgain,
         pulsegain = p_pulsegain,
@@ -596,6 +645,8 @@ BEGIN
         p_freqstep => s.freqstep,
         p_freqstop => s.freqstop,
         p_sensorlength => s.sensorlength,
+        p_sensorstartpoint => s.sensorstartpoint,
+        p_sensorendpoint => s.sensorendpoint,
         p_sensorpointlength => s.sensorpointlength,
         p_cwatt => s.cwatt,
         p_adpgain => s.adpgain,
@@ -603,8 +654,7 @@ BEGIN
         p_pulselength => s.pulselength,
         p_sensorid => s.sensorid,
         p_sensorfname => s.sensorfname,
-        p_comment => s.comment,
-        p_sensorstartpoint => s.sensorstartpoint
+        p_comment => s.comment
     ) INTO r_sensorid;
     RETURN r_sensorid;
 END;
@@ -626,15 +676,16 @@ CREATE OR REPLACE FUNCTION insert_sensors_without_update(
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
   p_pulselength INTEGER,
+  p_sensorstartpoint INTEGER DEFAULT NULL,
+  p_sensorendpoint INTEGER DEFAULT NULL,
+  p_sensorpointlength INTEGER DEFAULT NULL,
   p_sensorid INTEGER DEFAULT NULL,
   p_sensorfname VARCHAR(128) DEFAULT '',
-  p_comment VARCHAR(256) DEFAULT '',
-  p_sensorstartpoint INTEGER DEFAULT 0
+  p_comment VARCHAR(256) DEFAULT ''
 ) RETURNS INT AS $$
 DECLARE
     r_sensorid INT;
@@ -659,9 +710,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -679,9 +730,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
-        (SELECT p_sensorlength - p_sensorstartpoint),
+        p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -713,6 +764,8 @@ BEGIN
         p_freqstep => s.freqstep,
         p_freqstop => s.freqstop,
         p_sensorlength => s.sensorlength,
+        p_sensorstartpoint => s.sensorstartpoint,
+        p_sensorendpoint => s.sensorendpoint,
         p_sensorpointlength => s.sensorpointlength,
         p_cwatt => s.cwatt,
         p_adpgain => s.adpgain,
@@ -720,8 +773,7 @@ BEGIN
         p_pulselength => s.pulselength,
         p_sensorid => s.sensorid,
         p_sensorfname => s.sensorfname,
-        p_comment => s.comment,
-        p_sensorstartpoint => s.sensorstartpoint
+        p_comment => s.comment
     ) INTO r_sensorid;
     RETURN r_sensorid;
 END;
@@ -961,9 +1013,9 @@ CREATE OR REPLACE FUNCTION insert_sweepdatalorenz_without_update (
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_sensorstartpoint INTEGER,
   p_sensorendpoint INTEGER,
+  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
@@ -996,9 +1048,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -1018,9 +1070,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
         p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -1050,9 +1102,9 @@ CREATE OR REPLACE FUNCTION insert_sweepdatalorenz_with_update (
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_sensorstartpoint INTEGER,
   p_sensorendpoint INTEGER,
+  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
@@ -1080,9 +1132,9 @@ BEGIN
             freqstep = p_freqstep,
             freqstop = p_freqstop,
             sensorlength = p_sensorlength,
-            sensorpointlength = p_sensorpointlength,
             sensorstartpoint = p_sensorstartpoint,
             sensorendpoint = p_sensorendpoint,
+            sensorpointlength = p_sensorpointlength,
             cwatt = p_cwatt,
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
@@ -1113,9 +1165,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -1135,9 +1187,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
         p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -1160,9 +1212,9 @@ BEGIN
             freqstep = p_freqstep,
             freqstop = p_freqstop,
             sensorlength = p_sensorlength,
-            sensorpointlength = p_sensorpointlength,
             sensorstartpoint = p_sensorstartpoint,
             sensorendpoint = p_sensorendpoint,
+            sensorpointlength = p_sensorpointlength,
             cwatt = p_cwatt,
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
@@ -1536,6 +1588,13 @@ CREATE OR REPLACE TRIGGER zones_audit_log_trigger
         zones_audit_log_trigger_handle();
 
 
+CREATE OR REPLACE TRIGGER sensor_points_trigger
+    BEFORE
+        INSERT ON sensors
+    FOR
+        EACH ROW
+    EXECUTE FUNCTION
+        sensor_points_handle();
 CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;

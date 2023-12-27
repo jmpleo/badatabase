@@ -13,17 +13,18 @@ def random_sensor(fake):
     p_flagusingswith = fake.boolean()
     p_extracmdscript = fake.name()
     p_switchsensorname = fake.name()
-    p_average = fake.random_int(min=0, max=100)
-    p_freqstart = fake.random_int(min=0, max=1000)
-    p_freqstep = fake.random_int(min=0, max=10) / 10
+    p_average = fake.random_int(min=1, max=100)
+    p_freqstart = fake.random_int(min=1, max=1000)
+    p_freqstep = fake.random_int(min=1, max=10) / 10
     p_freqstop = fake.random_int(min=int(p_freqstart), max=2000)
-    p_sensorlength = fake.random_int(min=0, max=100)
-    p_sensorpointlength = fake.random_int(min=0, max=100)
-    p_sensorstartpoint = fake.random_int(min=0, max=100)
-    p_cwatt = fake.random_int(min=0, max=100)
-    p_adpgain = fake.random_int(min=0, max=100)
-    p_pulsegain = fake.random_int(min=0, max=100)
-    p_pulselength = fake.random_int(min=0, max=100)
+    p_sensorlength = fake.random_int(min=1, max=100)
+    p_sensorstartpoint = fake.random_int(min=1, max=100)
+    p_sensorendpoint = fake.random_int(min=p_sensorstartpoint, max=100)
+    p_sensorpointlength = fake.random_int(min=1, max=100)
+    p_cwatt = fake.random_int(min=1, max=100)
+    p_adpgain = fake.random_int(min=1, max=100)
+    p_pulsegain = fake.random_int(min=1, max=100)
+    p_pulselength = fake.random_int(min=1, max=100)
     return (
         p_sensorname,
         p_flagsensoron,
@@ -35,11 +36,13 @@ def random_sensor(fake):
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
-        p_pulselength
+        p_pulselength,
+        p_sensorstartpoint,
+        p_sensorendpoint,
+        #p_sensorpointlength
     )
 
 
@@ -47,7 +50,7 @@ def random_badevice(fake):
     p_deviceid = fake.random_int(min=1000, max=1000000)
     p_devicename = fake.word()
     p_adcfreq = fake.random_int(min=10, max=10000)
-    p_startdiscret = fake.random_int(min=0, max=10)
+    p_startdiscret = fake.random_int(min=1, max=10)
     return (
         str(p_deviceid),
         p_devicename,
@@ -127,11 +130,11 @@ def random_sweep(fake, p_sensorid, p_sensorname):
     p_freqstart = float(fake.random_int(min=1000, max=2000))
     p_freqstep = float(fake.random_int(min=10, max=100))
     p_freqstop = float(fake.random_int(min=1000, max=2000))
-    p_sensorlength = fake.random_int(min=0, max=10000)
+    p_sensorlength = fake.random_int(min=1, max=10000)
     p_sensorpointlength = 10000
-    p_sensorstartpoint = fake.random_int(min=0, max=100)
+    p_sensorstartpoint = fake.random_int(min=1, max=100)
     p_sensorendpoint = p_sensorstartpoint + p_sensorpointlength
-    p_cwatt = fake.random_int(min=0, max=10000)
+    p_cwatt = fake.random_int(min=1, max=10000)
     p_adpgain = fake.random_int(min=-100, max=100)
     p_pulsegain = fake.random_int(min=-100, max=100)
     p_pulselength = fake.random_int(min=-100, max=100)
