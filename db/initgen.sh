@@ -4,25 +4,27 @@ cd sql/
 
 # WARNING! it is important to follow the script sequence
 sql="\
+crypto.sql \
 entity \
 func \
 trigger \
 role.sql \
 users.sql \
 rls.sql \
+replication.sql \
 "
 
-echo "-- main.sql --" > main.sql
+echo "-- init.sql --" > init.sql
 
 for unit in $sql; do
     if [ -d $unit ]; then
         for file in $unit/*; do
             if [ -f "$file" ]; then
-                cat "$file" >> main.sql && echo "add... $file"
+                cat "$file" >> init.sql && echo "add... $file"
             fi
         done
     elif [ -f $unit ]; then
-        cat "$unit" >> main.sql && echo "add... $unit"
+        cat "$unit" >> init.sql && echo "add... $unit"
     fi
 done
 
@@ -57,5 +59,5 @@ done
 #    fi
 #done
 
-
+mv init.sql ..
 echo "done!"

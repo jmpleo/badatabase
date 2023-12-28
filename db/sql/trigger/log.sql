@@ -1,3 +1,5 @@
+
+
 CREATE OR REPLACE TRIGGER sensorslines_audit_log_trigger
     AFTER
         INSERT OR UPDATE OR DELETE

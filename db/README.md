@@ -213,4 +213,88 @@ $$
 LANGUAGE plpgsql;
 ```
 
-### 
+### Ширфование
+
+Реализовано на примере тестовой таблицы`labelers_notes` (`sql/entity/labelers.sql`). Прозрачное шифрование столбца `note` таблицы `labelers_notes` обеспечивается триггером `notes_encryption_trigger`. Ключи шифрования храняться в таблице `labelers_keys`, доступ к которой разграничивается политиками RLS:
+
+```postgresql
+CREATE POLICY sensorslines_labeler_view_only_self_key ON labelers_keys FOR
+    SELECT TO sensorslines_labeler USING (labelername = CURRENT_USER);
+
+CREATE POLICY zones_labeler_view_only_self_key ON labelers_keys FOR
+    SELECT TO zones_labeler USING (labelername = CURRENT_USER);
+```
+
+### Резервное копирование. Репликация
+
+В качестве политики резервирования реализован метод репликации в режиме **master-slave**.
+
+Для этого была создана роль репликатора на **slave** сервере, и выделен слот репликации:
+
+```postgresql
+CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator';
+SELECT pg_create_physical_replication_slot('replication_slot');
+```
+
+Взаимодействие **master-slave** реализовано через **docker-compose**:
+
+```yaml
+version: '3.8'
+x-postgres-common:
+  &postgres-badatabase
+  image: postgres:15.5-alpine
+  user: postgres
+  restart: always
+  healthcheck:
+    test: 'pg_isready -U badatabase --dbname=badatabase'
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  badatabase_primary:
+    <<: *postgres-badatabase
+    ports:
+      - 5454:5432
+    env_file:
+      - .env
+    command: |
+      postgres
+      -c wal_level=replica
+      -c hot_standby=on
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby_feedback=on
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+
+  badatabase_replica:
+    <<: *postgres-badatabase
+    ports:
+      - 5353:5432
+    env_file:
+      - .env.replica
+    volumes:
+      - pgdata_replica:/var/lib/postgresql/data
+    command: |
+      bash -c "
+      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=badatabase_primary --port=5432
+      do
+      echo 'Waiting for primary to connect...'
+      sleep 1s
+      done
+      echo 'Backup done, starting replica...'
+      chmod 0700 /var/lib/postgresql/data
+      postgres
+      "
+    depends_on:
+      - badatabase_primary
+
+volumes:
+  pgdata:
+  pgdata_replica:
+```
+
+### Внешняя аутентификация
+

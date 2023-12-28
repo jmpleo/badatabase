@@ -1,16 +1,55 @@
 version: '3.8'
+x-postgres-common:
+  &postgres-badatabase
+  image: postgres:15.5-alpine
+  user: postgres
+  restart: always
+  healthcheck:
+    test: 'pg_isready -U badatabase --dbname=badatabase'
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
 services:
-  badatabase:
-    container_name: badatabase
-    # image: "postgres:15.5-alpine"
-    build: .
-    restart: always
+  badatabase_primary:
+    <<: *postgres-badatabase
+    ports:
+      - 5454:5432
     env_file:
       - .env
+    command: |
+      postgres
+      -c wal_level=replica
+      -c hot_standby=on
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby_feedback=on
     volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgdata:/var/lib/postgresql/data
+
+  badatabase_replica:
+    <<: *postgres-badatabase
     ports:
-      - "5454:5432"
+      - 5353:5432
+    env_file:
+      - .env.replica
+    volumes:
+      - pgdata_replica:/var/lib/postgresql/data
+    command: |
+      bash -c "
+      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=badatabase_primary --port=5432
+      do
+      echo 'Waiting for primary to connect...'
+      sleep 1s
+      done
+      echo 'Backup done, starting replica...'
+      chmod 0700 /var/lib/postgresql/data
+      postgres
+      "
+    depends_on:
+      - badatabase_primary
 
 volumes:
   pgdata:
+  pgdata_replica:
