@@ -3,18 +3,34 @@
 Сгенерируйте файл `main.sql`:
 
 ```bash
-./mainsql-gen.sh
+./initgen.sh
 ```
 
 Настройте конфигурации БД в файле`.env`:
 
 ```bash
-POSTGRES_USER=badatabase
-POSTGRES_PASSWORD=<your sec password>
 POSTGRES_DB=badatabase
+POSTGRES_USER=badatabase
+POSTGRES_PASSWORD=badatabase
+POSTGRES_HOST_AUTH_METHOD="scram-sha-256\nhost replication all 0.0.0.0/0 md5\nhostssl all all all cert\n "
+POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
+
+# for fill.py script
+DATABASE_HOST=localhost
+DATABASE_PORT=5454
+DATABASE_NAME=badatabase
+DATABASE_USER=badatabase
+DATABASE_PASSWORD=badatabase
 ```
 
-Запустите сервер БД используя `docker-compose`:
+А также виртуальное окружение`.env.replica` - для сервера-реплики:
+
+```bash
+PGUSER=replicator
+PGPASSWORD=replicator
+```
+
+Запустите `badatabase_primary` и реплику `badatabase_replica` используя `docker-compose`:
 
 ```bash
 docker-compose up
@@ -22,13 +38,9 @@ docker-compose up
 
 ## Отчет: Построение защищенных СУБД
 
-@jmpleo @1193221
-
----
-
 ### Описание предметной области
 
-Анализ характеристик оптоволоконного кабеля: бриллюэновский анализатор спектра частот.
+#### Анализ характеристик оптоволоконного кабеля: бриллюэновский анализатор спектра частот.
 
 ### Сущности
 
@@ -47,23 +59,33 @@ docker-compose up
 Роли СУБД: 
 
 - `admin` - Пользователь, имеющий доступ ко всем таблицам на чтение и запись
-- `labler` - Разметчик данных линий и зон частотных характеристик. Имеет доступ на чтение и запись таблиц `sensorslines`, `zones`. 
+- `*_labeler` - Разметчик данных линий или зон частотных характеристик. Имеет доступ на чтение и запись таблицы `sensorslines` или `zones`. 
 - `viewer` - Обычный пользователь, имеющий доступ на чтение данных в таблицах.
 
 ```postgresql
--- Создание роли "admin"
-CREATE ROLE admin;
+
+CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
 
--- Создание роли "labler"
-CREATE ROLE labler;
-GRANT SELECT, INSERT ON sensorslines TO labler;
-GRANT SELECT, INSERT ON zones TO labler;
+CREATE ROLE zones_labeler WITH LOGIN PASSWORD 'zones_labeler';
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO zones_labeler;
+GRANT ALL PRIVILEGES ON zones TO zones_labeler;
+GRANT ALL PRIVILEGES ON labelers TO zones_labeler;
+GRANT SELECT ON select_labelersecret TO zones_labeler;
+GRANT ALL PRIVILEGES ON labelerskeys TO zones_labeler;
 
--- Создание роли "viewer"
-CREATE ROLE viewer;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO viewer;
+CREATE ROLE sensorslines_labeler WITH LOGIN PASSWORD 'sensorslines_labeler';
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON sensorslines TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON labelers TO sensorslines_labeler;
+GRANT SELECT ON select_labelersecret TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON labelerskeys TO sensorslines_labeler;
+
+CREATE ROLE auditor WITH LOGIN PASSWORD 'auditor';
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
+
+
 ```
 
 ### Тщательный контроль доступа (RLS)
@@ -71,14 +93,34 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO viewer;
 Создадим пользователей, для которых будем настраивать разграничение доступа. Предоставим доступ к таблицам разметки `sensorslines` и `zones` в соответствии определенному сенсору.
 
 ```postgresql
-CREATE USER zones_labler_sensor_1 WITH PASSWORD 'zones_labler_sensor_1';
-GRANT zones_labler to zones_labler_sensor_1;
+ALTER TABLE sensorslines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE zones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE labelerskeys ENABLE ROW LEVEL SECURITY;
 
-CREATE USER sensorslines_labler_sensor_1 WITH PASSWORD 'sensorslines_labler_sensor_1';
-GRANT sensorslines_labler to sensorslines_labler_sensor_1;
+CREATE POLICY sensorslines_labeler_sensor_1_view ON sensorslines FOR
+    SELECT TO sensorslines_labeler_sensor_1 USING (sensorid = 1);
 
-CREATE USER auditor_sensor_1 WITH PASSWORD 'auditor_sensor_1';
-GRANT auditor to auditor_sensor_1;
+CREATE POLICY zones_labeler_sensor_1_view ON zones FOR
+    SELECT TO zones_labeler_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY admin_view_sensorslines ON sensorslines FOR
+    ALL TO admin USING (TRUE);
+
+CREATE POLICY admin_view_zones ON zones FOR
+    ALL TO admin USING (TRUE);
+
+CREATE POLICY auditor_sensor_1_view_sensorlines ON sensorslines FOR
+    SELECT TO auditor_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY auditor_sensor_1_view_zones ON zones FOR
+    SELECT TO auditor_sensor_1 USING (sensorid = 1);
+
+CREATE POLICY sensorslines_labeler_view_only_self_key ON labelerskeys FOR
+    SELECT TO sensorslines_labeler USING (labelername = CURRENT_USER);
+
+CREATE POLICY zones_labeler_view_only_self_key ON labelerskeys FOR
+    SELECT TO zones_labeler USING (labelername = CURRENT_USER);
+
 ```
 
 Теперь настроим политики для пользователей, разграничив выбор для определенных столбцов в зависимости от `sensorid`.
@@ -158,17 +200,11 @@ CREATE OR REPLACE TRIGGER zones_audit_log_trigger
         zones_audit_log_trigger_handle();
 ```
 
-Для аудита уровня БД необходимо выставить параметр `log_statement=all` в конфигурационном файле `postgresql.conf`.
-
-Тогда можно бедт наблюдать логирование всех запросов к БД:
-
-```bash
-sudo cat /var/log/postgresql/postgresql-<version>-main.log
-```
+Для аудита уровня БД необходимо выставить параметр `log_statement=all` в конфигурационном файле `postgresql.conf`
 
 ### Контроль целостности
 
-Свзяность таблиц и ограничения, задаваемые в скриптах `entity/*.sql`, обеспечивают декларативный контроль целостности.
+Свзязность таблиц и ограничения, задаваемые в скриптах `entity/*.sql`, обеспечивают декларативный контроль целостности.
 
 Примером процедурного контроля целостности служит триггер `trigger/point.sql` на осуществление контроля за связкой полей таблицы `sensors`: `sensorstartpoint`, `sensorendpoint`, `sensorpointlength`.
 
@@ -213,16 +249,157 @@ $$
 LANGUAGE plpgsql;
 ```
 
-### Ширфование
+### Шифрование
 
-Реализовано на примере тестовой таблицы`labelers_notes` (`sql/entity/labelers.sql`). Прозрачное шифрование столбца `note` таблицы `labelers_notes` обеспечивается триггером `notes_encryption_trigger`. Ключи шифрования храняться в таблице `labelers_keys`, доступ к которой разграничивается политиками RLS:
+Реализовано на примере тестовой таблицы`labelers` (`sql/entity/labelers.sql`). Прозрачное шифрование столбца `labelersecret` таблицы `labelers` обеспечивается триггером `insert_labelers_trigger`:
 
 ```postgresql
-CREATE POLICY sensorslines_labeler_view_only_self_key ON labelers_keys FOR
+CREATE OR REPLACE FUNCTION insert_labeler_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
+    THEN
+        RAISE EXCEPTION 'User have not a key';
+    END IF;
+
+    IF
+        NEW.labelername != CURRENT_USER
+        AND
+        NEW.labelername != 'admin'
+    THEN
+        RAISE EXCEPTION 'Permission denied to update data';
+    END IF;
+
+    NEW.labelersecret:= pgp_sym_encrypt(
+        NEW.labelersecret,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER insert_labeler_trigger
+BEFORE
+    INSERT OR UPDATE ON labelers
+FOR
+    EACH ROW
+EXECUTE
+    FUNCTION insert_labeler_handle();
+```
+
+Расшифрование обеспечивается представлением:
+
+```postgresql
+CREATE OR REPLACE VIEW select_labelersecret AS
+    SELECT
+        select_labelersecret(labelersecret, labelername) AS labelersecret
+    FROM
+        labelers
+    WHERE labelername = CURRENT_USER;
+```
+
+Для этого используется функция расшифрования:
+
+```postgresql 
+CREATE OR REPLACE FUNCTION select_labelersecret(p_secret TEXT, p_labelername TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    decrypt_secret TEXT;
+BEGIN
+    IF
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
+    THEN
+        RAISE EXCEPTION 'User does not have a key';
+    END IF;
+
+    IF
+        p_labelername != 'admin'
+        AND
+        p_labelername != CURRENT_USER
+    THEN
+        RAISE EXCEPTION 'Permission denied to update data';
+    END IF;
+
+    decrypt_secret := pgp_sym_decrypt(
+        p_secret::BYTEA,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
+    );
+    RETURN decrypt_secret;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+Ключи шифрования хранятся в таблице `labelers_keys`, доступ к которой разграничивается политиками RLS:
+
+```postgresql
+CREATE POLICY sensorslines_labeler_view_only_self_key ON labelerskeys FOR
     SELECT TO sensorslines_labeler USING (labelername = CURRENT_USER);
 
-CREATE POLICY zones_labeler_view_only_self_key ON labelers_keys FOR
+CREATE POLICY zones_labeler_view_only_self_key ON labelerskeys FOR
     SELECT TO zones_labeler USING (labelername = CURRENT_USER);
+```
+
+Таким образом, пользователь может добавлять, обновлять свой ключ в `labelerskeys`:
+
+```
+badatabase@zones_labeler=> insert into labelerskeys(labelerkey, labelername) values ('zones_labeler', 'zones_labeler');
+
+INSERT 0 1
+```
+
+```
+badatabase@badatabase=# insert into labelerskeys(labelerkey, labelername) values ('badatabase', 'badatabase');
+
+INSERT 0 1
+```
+
+```
+badatabase@zones_labeler=> select * from labelerskeys;
+
+ keyid | labelerkey    |  labelername  
+-------+---------------+---------------
+     2 | zones_labeler | zones_labeler
+(1 row)
+```
+
+Для шифрования достаточно просто добавить запись в таблицу `labelers`:
+
+```
+badatabase@zones_labeler=> insert into labelers(labelersecret) values ('zones_labeler');
+
+INSERT 0 1
+```
+
+```
+badatabase@badatabase=> insert into labelers(labelersecret) values ('badatabase');
+
+INSERT 0 1
+```
+
+Данные в таблице `labelers` хранятся в зашифрованном виде:
+
+```
+badatabase@zones_labeler=> select * from labelers;
+
+labelerid |  labelername  |                                                                           labelersecret                                                                            
+-----------+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+         1 | badatabase    | \xc30d04070302161d10539f60b8657dd23b01f740075c186329a7883e41db7f579782d9882fde27f3df6b2b95a3942426c244735193868494df4bd136c940e722a9edd1da5fb40876af5a69ab
+         2 | zones_labeler | \xc30d04070302873941fd7f1fb82573d23f01158ac7730f738053e8613dd289cab2253c151c44f92f8c1213ad9846ac9ff2e1dfc21f929df5f5c83180a11186d9e270012644319c233a2b71b3e1133422
+(2 rows)
+
+```
+
+Для расшифрования необходимо сделать выборку из представления:
+
+```
+badatabase@zones_labeler=> select * from select_labelersecret;
+
+ labelersecret  
+----------------
+ zones_labelers
+(1 row)
 ```
 
 ### Резервное копирование. Репликация
@@ -295,6 +472,8 @@ volumes:
   pgdata:
   pgdata_replica:
 ```
+
+Реплика доступна только для чтения на порту `5353`, а сервер-мастер на `5454`.
 
 ### Внешняя аутентификация
 

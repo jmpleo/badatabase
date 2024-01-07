@@ -8,6 +8,7 @@ crypto.sql \
 entity \
 func \
 trigger \
+view \
 role.sql \
 users.sql \
 rls.sql \

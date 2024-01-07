@@ -118,23 +118,15 @@ CREATE TABLE IF NOT EXISTS zones (
 
 CREATE TABLE labelers (
     labelerid SERIAL PRIMARY KEY,
-    labelername VARCHAR(50) NOT NULL UNIQUE,
-    timestamp TIMESTAMP DEFAULT now()
+    labelername VARCHAR(50) NOT NULL UNIQUE DEFAULT CURRENT_USER,
+    labelersecret TEXT NOT NULL DEFAULT ''
 );
 
 
-CREATE TABLE labelers_keys (
+CREATE TABLE labelerskeys (
     keyid SERIAL PRIMARY KEY,
-    key TEXT NOT NULL DEFAULT '',
-    labelername VARCHAR(50) NOT NULL REFERENCES labelers(labelername),
-    labelerid INTEGER REFERENCES labelers(labelerid)
-);
-
-
-CREATE TABLE labelers_notes (
-    noteid SERIAL PRIMARY KEY,
-    note TEXT NOT NULL DEFAULT '',
-    labelerid INTEGER REFERENCES labelers(labelerid)
+    labelerkey TEXT NOT NULL DEFAULT '',
+    labelername VARCHAR(50) NOT NULL UNIQUE DEFAULT CURRENT_USER
 );
 
 
@@ -222,30 +214,54 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION notes_encryption_handle()
+CREATE OR REPLACE FUNCTION select_labelersecret(p_secret TEXT, p_labelername TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    decrypt_secret TEXT;
+BEGIN
+    IF
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
+    THEN
+        RAISE EXCEPTION 'User does not have a key';
+    END IF;
+
+    IF
+        p_labelername != 'admin'
+        AND
+        p_labelername != CURRENT_USER
+    THEN
+        RAISE EXCEPTION 'Permission denied to update data';
+    END IF;
+
+    decrypt_secret := pgp_sym_decrypt(
+        p_secret::BYTEA,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
+    );
+    RETURN decrypt_secret;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION insert_labeler_handle()
 RETURNS TRIGGER AS $$
 BEGIN
     IF
-        CURRENT_USER NOT IN (SELECT labelername FROM labelers_keys)
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
     THEN
         RAISE EXCEPTION 'User have not a key';
     END IF;
 
     IF
-        CURRENT_USER != NEW.labelername
+        NEW.labelername != CURRENT_USER
+        AND
+        NEW.labelername != 'admin'
     THEN
         RAISE EXCEPTION 'Permission denied to update data';
     END IF;
 
-    NEW.notes := pgp_sym_encrypt(
-        NEW.notes, (
-            SELECT
-                key
-            FROM
-                labelers_keys
-            WHERE
-                labelername = CURRENT_USER
-        )
+    NEW.labelersecret:= pgp_sym_encrypt(
+        NEW.labelersecret,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
     );
     RETURN NEW;
 END;
@@ -1629,14 +1645,13 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE TRIGGER notes_encryption_trigger
+CREATE TRIGGER insert_labeler_trigger
 BEFORE
-    INSERT OR UPDATE ON labelers_notes
+    INSERT OR UPDATE ON labelers
 FOR
     EACH ROW
 EXECUTE
-    FUNCTION notes_encryption_handle();
-
+    FUNCTION insert_labeler_handle();
 
 
 
@@ -1669,20 +1684,35 @@ CREATE OR REPLACE TRIGGER sensor_points_trigger
         EACH ROW
     EXECUTE FUNCTION
         sensor_points_handle();
+CREATE OR REPLACE VIEW select_labelersecret AS
+    SELECT
+        select_labelersecret(labelersecret, labelername) AS labelersecret
+    FROM
+        labelers
+    WHERE labelername = CURRENT_USER;
+
+
 CREATE ROLE admin WITH LOGIN PASSWORD 'admin';
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
 
 CREATE ROLE zones_labeler WITH LOGIN PASSWORD 'zones_labeler';
-GRANT INSERT ON zones TO zones_labeler;
-GRANT SELECT ON TABLE labelers TO zones_labeler;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO zones_labeler;
+GRANT ALL PRIVILEGES ON zones TO zones_labeler;
+GRANT ALL PRIVILEGES ON labelers TO zones_labeler;
+GRANT SELECT ON select_labelersecret TO zones_labeler;
+GRANT ALL PRIVILEGES ON labelerskeys TO zones_labeler;
 
 CREATE ROLE sensorslines_labeler WITH LOGIN PASSWORD 'sensorslines_labeler';
-GRANT INSERT ON sensorslines TO sensorslines_labeler;
-GRANT SELECT ON TABLE labelers TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON sensorslines TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON labelers TO sensorslines_labeler;
+GRANT SELECT ON select_labelersecret TO sensorslines_labeler;
+GRANT ALL PRIVILEGES ON labelerskeys TO sensorslines_labeler;
 
 CREATE ROLE auditor WITH LOGIN PASSWORD 'auditor';
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
+
 
 CREATE USER zones_labeler_sensor_1 WITH PASSWORD 'zones_labeler_sensor_1';
 GRANT zones_labeler to zones_labeler_sensor_1;
@@ -1697,7 +1727,7 @@ CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator';
 
 ALTER TABLE sensorslines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE zones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE labelers_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE labelerskeys ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY sensorslines_labeler_sensor_1_view ON sensorslines FOR
     SELECT TO sensorslines_labeler_sensor_1 USING (sensorid = 1);
@@ -1717,9 +1747,10 @@ CREATE POLICY auditor_sensor_1_view_sensorlines ON sensorslines FOR
 CREATE POLICY auditor_sensor_1_view_zones ON zones FOR
     SELECT TO auditor_sensor_1 USING (sensorid = 1);
 
-CREATE POLICY sensorslines_labeler_view_only_self_key ON labelers_keys FOR
-    SELECT TO sensorslines_labeler USING (labelername = CURRENT_USER);
+CREATE POLICY sensorslines_labeler_view_only_self_key ON labelerskeys FOR
+    ALL TO sensorslines_labeler USING (labelername = CURRENT_USER);
 
-CREATE POLICY zones_labeler_view_only_self_key ON labelers_keys FOR
-    SELECT TO zones_labeler USING (labelername = CURRENT_USER);
+CREATE POLICY zones_labeler_view_only_self_key ON labelerskeys FOR
+    ALL TO zones_labeler USING (labelername = CURRENT_USER);
+
 SELECT pg_create_physical_replication_slot('replication_slot');

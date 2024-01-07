@@ -1,29 +1,53 @@
 
 
-CREATE OR REPLACE FUNCTION notes_encryption_handle()
+CREATE OR REPLACE FUNCTION select_labelersecret(p_secret TEXT, p_labelername TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    decrypt_secret TEXT;
+BEGIN
+    IF
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
+    THEN
+        RAISE EXCEPTION 'User does not have a key';
+    END IF;
+
+    IF
+        p_labelername != 'admin'
+        AND
+        p_labelername != CURRENT_USER
+    THEN
+        RAISE EXCEPTION 'Permission denied to update data';
+    END IF;
+
+    decrypt_secret := pgp_sym_decrypt(
+        p_secret::BYTEA,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
+    );
+    RETURN decrypt_secret;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION insert_labeler_handle()
 RETURNS TRIGGER AS $$
 BEGIN
     IF
-        CURRENT_USER NOT IN (SELECT labelername FROM labelers_keys)
+        CURRENT_USER NOT IN (SELECT labelername FROM labelerskeys)
     THEN
         RAISE EXCEPTION 'User have not a key';
     END IF;
 
     IF
-        CURRENT_USER != NEW.labelername
+        NEW.labelername != CURRENT_USER
+        AND
+        NEW.labelername != 'admin'
     THEN
         RAISE EXCEPTION 'Permission denied to update data';
     END IF;
 
-    NEW.notes := pgp_sym_encrypt(
-        NEW.notes, (
-            SELECT
-                key
-            FROM
-                labelers_keys
-            WHERE
-                labelername = CURRENT_USER
-        )
+    NEW.labelersecret:= pgp_sym_encrypt(
+        NEW.labelersecret,
+        (SELECT labelerkey FROM labelerskeys WHERE labelername = CURRENT_USER)
     );
     RETURN NEW;
 END;

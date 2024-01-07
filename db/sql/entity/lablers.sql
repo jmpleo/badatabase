@@ -2,22 +2,15 @@
 
 CREATE TABLE labelers (
     labelerid SERIAL PRIMARY KEY,
-    labelername VARCHAR(50) NOT NULL UNIQUE,
-    timestamp TIMESTAMP DEFAULT now()
+    labelername VARCHAR(50) NOT NULL UNIQUE DEFAULT CURRENT_USER,
+    labelersecret TEXT NOT NULL DEFAULT ''
 );
 
 
-CREATE TABLE labelers_keys (
+CREATE TABLE labelerskeys (
     keyid SERIAL PRIMARY KEY,
-    key TEXT NOT NULL DEFAULT '',
-    labelername VARCHAR(50) NOT NULL REFERENCES labelers(labelername)
-);
-
-
-CREATE TABLE labelers_notes (
-    noteid SERIAL PRIMARY KEY,
-    note TEXT NOT NULL DEFAULT '',
-    labelerid INTEGER REFERENCES labelers(labelerid)
+    labelerkey TEXT NOT NULL DEFAULT '',
+    labelername VARCHAR(50) NOT NULL UNIQUE DEFAULT CURRENT_USER
 );
 
 
