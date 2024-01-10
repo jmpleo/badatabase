@@ -2,6 +2,7 @@ version: '3.8'
 x-postgres-common:
   &postgres-badatabase
   image: postgres:15.5-alpine
+  #build: .
   user: postgres
   restart: always
   healthcheck:
@@ -17,23 +18,22 @@ services:
       - 5454:5432
     env_file:
       - .env
+    volumes:
+      - pgdata_primary:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - keytab:/keytab
     command: |
       postgres
-      -c wal_level=replica
-      -c hot_standby=on
-      -c max_wal_senders=10
-      -c max_replication_slots=10
-      -c hot_standby_feedback=on
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - pgdata:/var/lib/postgresql/data
+      -c config_file=/etc/postgresql/postgresql.conf
 
   badatabase_replica:
     <<: *postgres-badatabase
     ports:
       - 5353:5432
     env_file:
-      - .env.replica
+      - .replica.env
     volumes:
       - pgdata_replica:/var/lib/postgresql/data
     command: |
@@ -50,6 +50,21 @@ services:
     depends_on:
       - badatabase_primary
 
+  kdc-kadmin:
+    build: ./kerberos/kdc-kadmin
+    env_file: ./kerberos/kerberos.env
+    volumes:
+      # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
+      - /dev/urandom:/dev/random
+      - keytab:/keytab
+
+  kerberos-client:
+    build: ./kerberos/kerberos-client
+    env_file: ./kerberos/kerberos.env
+    depends_on:
+      - kdc-kadmin
+
 volumes:
-  pgdata:
+  pgdata_primary:
   pgdata_replica:
+  keytab:

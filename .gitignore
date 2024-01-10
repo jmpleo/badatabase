@@ -6,6 +6,5 @@ compile_commands.json
 docs
 include/config.h
 pgdata
-.env
+*.env
 deploy.sh
-.env.*
