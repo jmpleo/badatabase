@@ -1,13 +1,13 @@
 #!/bin/sh
 
-BACKUP_DIR=/backup/$(date +%Y-%m-%d_%H-%M-%S)
+#mkdir -p /backup/new
+#mv /backup/new/* /backup/old
 
-mkdir -p $BACKUP_DIR
-
-until pg_basebackup --pgdata=$BACKUP_DIR --host=badatabase_primary --port=5432
+until pg_basebackup --pgdata=/backup/$(date +%Y-%m-%d_%H-%M-%S) --host=badatabase_primary --port=5432
 do
     echo 'Waiting for primary to connect...'
     sleep 1s
 done
 
 echo 'Backup done'
+sleep 7d

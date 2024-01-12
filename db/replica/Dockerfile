@@ -2,7 +2,7 @@ FROM postgres:15.5-alpine
 
 USER root
 
-COPY ./replica-entrypoint.sh /entrypoint.sh
+COPY ./entrypoint.sh /entrypoint.sh
 
 RUN mkdir -p /backup && \
     chown postgres -R /backup && \
