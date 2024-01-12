@@ -1,8 +1,7 @@
-version: '3.8'
+version: '3.9'
+
 x-postgres-common:
-  &postgres-badatabase
-  image: postgres:15.5-alpine
-  #build: .
+  &postgres
   user: postgres
   restart: always
   healthcheck:
@@ -13,40 +12,47 @@ x-postgres-common:
 
 services:
   badatabase_primary:
-    <<: *postgres-badatabase
+    <<: *postgres
+    build:
+      context: .
+      dockerfile: ./primary/Dockerfile
     ports:
       - 5454:5432
     env_file:
-      - .env
+      - ./primary/primary.env
     volumes:
-      - pgdata_primary:/var/lib/postgresql/data
-      - ./postgresql.conf:/etc/postgresql/postgresql.conf
-      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - keytab:/keytab
+      - pgdata_primary:/var/lib/postgresql/data
     command: |
       postgres
-      -c config_file=/etc/postgresql/postgresql.conf
+      -c wal_level=replica
+      -c hot_standby=on
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby_feedback=on
+      -c ssl=on
+      -c ssl_cert_file='/ssl/postgres.crt'
+      -c ssl_key_file='/ssl/postgres.key'
 
   badatabase_replica:
-    <<: *postgres-badatabase
+    <<: *postgres
+    build: ./replica
     ports:
       - 5353:5432
     env_file:
-      - .replica.env
+      - ./replica/replica.env
     volumes:
       - pgdata_replica:/var/lib/postgresql/data
-    command: |
-      bash -c "
-      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=badatabase_primary --port=5432
-      do
-      echo 'Waiting for primary to connect...'
-      sleep 1s
-      done
-      echo 'Backup done, starting replica...'
-      chmod 0700 /var/lib/postgresql/data
-      postgres
-      "
+    depends_on:
+      - badatabase_primary
+
+  badatabase_backup:
+    build: ./backup
+    env_file: ./backup/backup.env
+    volumes:
+      - pgdata_primary:/var/lib/postgresql/data
+      - backup:/backup
+    restart: always
     depends_on:
       - badatabase_primary
 
@@ -68,3 +74,4 @@ volumes:
   pgdata_primary:
   pgdata_replica:
   keytab:
+  backup:

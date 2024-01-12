@@ -188,11 +188,11 @@ def random_sweep(fake, p_sensorid, p_sensorname):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', type=str, help='', default=os.getenv("DATABASE_HOST"))
-    parser.add_argument('--port', type=str, help='', default=os.getenv("DATABASE_PORT"))
-    parser.add_argument('--dbname', type=str, help='', default=os.getenv("DATABASE_NAME"))
-    parser.add_argument('--user', type=str, help='', default=os.getenv("DATABASE_USER"))
-    parser.add_argument('--password', type=str, help='', default=os.getenv("DATABASE_PASSWORD"))
+    parser.add_argument('-H', '--host', type=str, help='', default=os.getenv("DATABASE_HOST"))
+    parser.add_argument('-P', '--port', type=str, help='', default=os.getenv("DATABASE_PORT"))
+    parser.add_argument('-D', '--dbname', type=str, help='', default=os.getenv("DATABASE_NAME"))
+    parser.add_argument('-U', '--user', type=str, help='', default=os.getenv("DATABASE_USER"))
+    parser.add_argument('-W', '--password', type=str, help='', default=os.getenv("DATABASE_PASSWORD"))
     parser.add_argument('--devices', type=int, help='', default=0)
     parser.add_argument('--sensors', type=int, help='', default=0)
     parser.add_argument('--sweeps', type=int, help='', default=0)
