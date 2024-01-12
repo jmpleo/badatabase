@@ -22,11 +22,13 @@ tee /etc/krb5.conf <<EOF
 
 [realms]
 	$REALM = {
-		kdc = kdc.example.local
-		admin_server = kdc.example.local
+		kdc = $KDC_HOSTNAME
+		admin_server = $KDC_HOSTNAME
 	}
 EOF
 echo ""
+
+kinit -k -t /keytab/$POSTGRES_PRINCIPAL.keytab $POSTGRES_PRINCIPAL
 
 echo "==================================================================================="
 echo "==== Testing ======================================================================"
@@ -35,5 +37,6 @@ until kadminCommand "list_principals $KADMIN_PRINCIPAL_FULL"; do
   >&2 echo "KDC is unavailable - sleeping 1 sec"
   sleep 1
 done
+klist
 echo "KDC and Kadmin are operational"
 echo ""

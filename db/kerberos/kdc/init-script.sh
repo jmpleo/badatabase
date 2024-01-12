@@ -83,7 +83,7 @@ kadmin.local -q "delete_principal -force $POSTGRES_PRINCIPAL@$REALM"
 echo ""
 kadmin.local -q "addprinc -pw $POSTGRES_PRINCIPAL_PASSWORD $POSTGRES_PRINCIPAL@$REALM"
 echo ""
-kadmin.local -q "ktadd -k /keytab/postgres.keytab $POSTGRES_PRINCIPAL@$REALM"
+kadmin.local -q "ktadd -k /keytab/$POSTGRES_PRINCIPAL.keytab -norandkey $POSTGRES_PRINCIPAL@$REALM"
 echo ""
 
 echo "==================================================================================="

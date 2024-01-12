@@ -13,9 +13,9 @@ RUN apt update && \
 RUN locale-gen "en_US.UTF-8"
 RUN echo "LC_ALL=\"en_US.UTF-8\"" >> /etc/default/locale
 
-ENV REALM ${REALM:-example.local}
-ENV KADMIN_PRINCIPAL ${KADMIN_PRINCIPAL:-kadmin/admin}
-ENV KADMIN_PASSWORD ${KADMIN_PASSWORD:-MITiys4K5}
+#ENV REALM ${REALM:-example.local}
+#ENV KADMIN_PRINCIPAL ${KADMIN_PRINCIPAL:-kadmin/admin}
+#ENV KADMIN_PASSWORD ${KADMIN_PASSWORD:-MITiys4K5}
 
 COPY init-script.sh configureKerberosClient.sh /tmp/
 ENTRYPOINT ["/tmp/init-script.sh"]

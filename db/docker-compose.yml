@@ -34,12 +34,12 @@ services:
       -c ssl=on
       -c ssl_cert_file='/ssl/postgres.crt'
       -c ssl_key_file='/ssl/postgres.key'
-      -c krb_server_keyfile='/keytab/postgres.keytab'
+      -c krb_server_keyfile='/keytab/badatabase.keytab'
     depends_on:
       - kdc
     networks:
       - realm-network
-    hostname: primary.example.local
+    hostname: primary.badatabase.local
 
   replica:
     <<: *postgres
@@ -54,7 +54,7 @@ services:
       - primary
     networks:
       - realm-network
-    hostname: replica.example.local
+    hostname: replica.badatabase.local
 
   backup:
     build: ./backup
@@ -71,7 +71,7 @@ services:
       - primary
     networks:
       - realm-network
-    hostname: backup.example.local
+    hostname: backup.badatabase.local
 
   kdc:
     build: ./kerberos/kdc
@@ -82,16 +82,18 @@ services:
       - keytab:/keytab
     networks:
       - realm-network
-    hostname: kdc.example.local
+    hostname: kdc.badatabase.local
 
   client:
     build: ./kerberos/client
     env_file: ./kerberos/kerberos.env
     depends_on:
       - kdc
+    volumes:
+      - keytab:/keytab
     networks:
       - realm-network
-    hostname: client.example.local
+    hostname: client.badatabase.local
 
 volumes:
   primary_pgdata:
@@ -101,4 +103,4 @@ volumes:
 
 networks:
   realm-network:
-    name: example.local
+    name: badatabase.local
