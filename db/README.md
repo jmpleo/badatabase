@@ -1,39 +1,39 @@
 ## Quick start
 
-Сгенерируйте файл `main.sql`:
-
-```bash
-./initgen.sh
-```
-
-Настройте конфигурации БД в файле`.env`:
+Чтобы настроить master-сервер измените `primary/primary.env`:
 
 ```bash
 POSTGRES_DB=badatabase
 POSTGRES_USER=badatabase
 POSTGRES_PASSWORD=badatabase
-POSTGRES_HOST_AUTH_METHOD="scram-sha-256\nhost replication all 0.0.0.0/0 md5\nhostssl all all all cert\n "
 POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
-
-# for fill.py script
-DATABASE_HOST=localhost
-DATABASE_PORT=5454
-DATABASE_NAME=badatabase
-DATABASE_USER=badatabase
-DATABASE_PASSWORD=badatabase
+POSTGRES_HOST_AUTH_METHOD="           scram-sha-256
+host       replication  all 0.0.0.0/0  md5
+hostssl    all          all all        cert
+hostgssenc all          all all        gss include_realm=0 krb_realm=example.local
+"
 ```
 
-А также виртуальное окружение`.env.replica` - для сервера-реплики:
+Чтобы настроить slave-сервер измените `replica/replica.env`
 
-```bash
+```bash 
 PGUSER=replicator
 PGPASSWORD=replicator
 ```
 
-Запустите `badatabase_primary` и реплику `badatabase_replica` используя `docker-compose`:
+Чтобы настроить backup-сервиc измените `backup/backup.env`
 
 ```bash
-docker-compose up
+PGUSER=badatabase
+PGPASSWORD=badatabase
+```
+
+> PGUSER и PGPASSWORD используются для аутентификации на сервере при использовании утилиты `pg_basebackup` 
+
+Запустите сервисы используя `docker-compose`:
+
+```bash
+docker-compose up -d
 ```
 
 ## Отчет: Построение защищенных СУБД
@@ -413,65 +413,45 @@ CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator';
 SELECT pg_create_physical_replication_slot('replication_slot');
 ```
 
-Взаимодействие **master-slave** реализовано через **docker-compose**:
+Сервис `badatabase_replica` настроет аналогично `badatabase_primary` и доступен по `5353` порту только для чтения:
 
 ```yaml
-version: '3.8'
-x-postgres-common:
-  &postgres-badatabase
-  image: postgres:15.5-alpine
-  user: postgres
-  restart: always
-  healthcheck:
-    test: 'pg_isready -U badatabase --dbname=badatabase'
-    interval: 10s
-    timeout: 5s
-    retries: 5
-
-services:
-  badatabase_primary:
-    <<: *postgres-badatabase
-    ports:
-      - 5454:5432
-    env_file:
-      - .env
-    command: |
-      postgres
-      -c wal_level=replica
-      -c hot_standby=on
-      -c max_wal_senders=10
-      -c max_replication_slots=10
-      -c hot_standby_feedback=on
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - pgdata:/var/lib/postgresql/data
-
-  badatabase_replica:
-    <<: *postgres-badatabase
+badatabase_replica:
+    <<: *postgres
+    build: ./replica
     ports:
       - 5353:5432
     env_file:
-      - .env.replica
+      - ./replica/replica.env
     volumes:
       - pgdata_replica:/var/lib/postgresql/data
-    command: |
-      bash -c "
-      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=badatabase_primary --port=5432
-      do
-      echo 'Waiting for primary to connect...'
-      sleep 1s
-      done
-      echo 'Backup done, starting replica...'
-      chmod 0700 /var/lib/postgresql/data
-      postgres
-      "
-    depends_on:
+    depends_on:	
       - badatabase_primary
-
-volumes:
-  pgdata:
-  pgdata_replica:
 ```
+
+Чтобы запустить репликацию, необходимо подготовить начальное состояние реплики. Это делается с помощью `pg_basebackup`:
+
+```bash
+#!/bin/sh
+
+rm -rf /var/lib/postgresql/data/*
+
+until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=badatabase_primary --port=5432
+do
+    echo 'Waiting for primary to connect...'
+    sleep 1s
+done
+
+echo 'Backup done, starting replica...'
+
+chmod 0700 /var/lib/postgresql/data
+
+postgres
+```
+
+Параметр  `-R` упрощает запуск реплики в режиме постоянного восстановления (что по сути и есть репликация), `pg_basebackup` создает специальные файлы `standby.signal` и  `postgresql.auto.conf` в `$PGDATA`. 
+
+Параметр `--slot=replication_slot` указывает, что утилита `pg_basebackup` должна использовать тот же слот репликации, который был создан в `init.sql` сценарий основного экземпляра. 
 
 Реплика доступна только для чтения на порту `5353`, а сервер-мастер на `5454`.
 
