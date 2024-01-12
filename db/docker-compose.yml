@@ -85,7 +85,7 @@ services:
     hostname: kdc.example.local
 
   client:
-    build: ./kerberos/kerberos-client
+    build: ./kerberos/client
     env_file: ./kerberos/kerberos.env
     depends_on:
       - kdc
