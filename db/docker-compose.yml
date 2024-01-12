@@ -11,7 +11,7 @@ x-postgres-common:
     retries: 5
 
 services:
-  badatabase_primary:
+  primary:
     <<: *postgres
     build:
       context: .
@@ -20,9 +20,10 @@ services:
       - 5454:5432
     env_file:
       - ./primary/primary.env
+      - ./kerberos/kerberos.env
     volumes:
       - keytab:/keytab
-      - pgdata_primary:/var/lib/postgresql/data
+      - primary_pgdata:/var/lib/postgresql/data
     command: |
       postgres
       -c wal_level=replica
@@ -33,8 +34,14 @@ services:
       -c ssl=on
       -c ssl_cert_file='/ssl/postgres.crt'
       -c ssl_key_file='/ssl/postgres.key'
+      -c krb_server_keyfile='/keytab/postgres.keytab'
+    depends_on:
+      - kdc
+    networks:
+      - realm-network
+    hostname: primary.example.local
 
-  badatabase_replica:
+  replica:
     <<: *postgres
     build: ./replica
     ports:
@@ -42,36 +49,56 @@ services:
     env_file:
       - ./replica/replica.env
     volumes:
-      - pgdata_replica:/var/lib/postgresql/data
+      - replica_pgdata:/var/lib/postgresql/data
     depends_on:
-      - badatabase_primary
+      - primary
+    networks:
+      - realm-network
+    hostname: replica.example.local
 
-  badatabase_backup:
+  backup:
     build: ./backup
     env_file: ./backup/backup.env
     volumes:
-      - pgdata_primary:/var/lib/postgresql/data
+      - primary_pgdata:/var/lib/postgresql/data
       - backup:/backup
     restart: always
+      #deploy:
+      #restart_policy:
+      # condition: any
+      # delay: 7d
     depends_on:
-      - badatabase_primary
+      - primary
+    networks:
+      - realm-network
+    hostname: backup.example.local
 
-  kdc-kadmin:
-    build: ./kerberos/kdc-kadmin
+  kdc:
+    build: ./kerberos/kdc
     env_file: ./kerberos/kerberos.env
     volumes:
       # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
       - /dev/urandom:/dev/random
       - keytab:/keytab
+    networks:
+      - realm-network
+    hostname: kdc.example.local
 
-  kerberos-client:
+  client:
     build: ./kerberos/kerberos-client
     env_file: ./kerberos/kerberos.env
     depends_on:
-      - kdc-kadmin
+      - kdc
+    networks:
+      - realm-network
+    hostname: client.example.local
 
 volumes:
-  pgdata_primary:
-  pgdata_replica:
+  primary_pgdata:
+  replica_pgdata:
   keytab:
   backup:
+
+networks:
+  realm-network:
+    name: example.local

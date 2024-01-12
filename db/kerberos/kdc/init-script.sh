@@ -3,13 +3,10 @@ echo "==========================================================================
 echo "==== Kerberos KDC and Kadmin ======================================================"
 echo "==================================================================================="
 KADMIN_PRINCIPAL_FULL=$KADMIN_PRINCIPAL@$REALM
-POSTGRES_PRINCIPAL_FULL=$POSTGRES_PRINCIPAL@$REALM
 
 echo "REALM: $REALM"
 echo "KADMIN_PRINCIPAL_FULL: $KADMIN_PRINCIPAL_FULL"
 echo "KADMIN_PASSWORD: $KADMIN_PASSWORD"
-echo "POSTGRES_PRINCIPAL_FULL: $POSTGRES_PRINCIPAL_FULL"
-echo "POSTGRES_PRINCIPAL_PASSWORD: $POSTGRES_PRINCIPAL_PASSWORD"
 echo ""
 
 echo "==================================================================================="
@@ -50,6 +47,7 @@ echo "==========================================================================
 tee /etc/krb5kdc/kadm5.acl <<EOF
 $KADMIN_PRINCIPAL_FULL *
 noPermissions@$REALM X
+$POSTGRES_PRINCIPAL$REALM X
 EOF
 echo ""
 
@@ -79,13 +77,14 @@ echo ""
 kadmin.local -q "addprinc -pw $KADMIN_PASSWORD noPermissions@$REALM"
 echo ""
 
-echo "Adding postgres principal"
-kadmin.local -q "delete_principal -force $POSTGRES_PRINCIPAL_FULL"
-echo ""
-kadmin.local -q "addprinc -pw $POSTGRES_PRINCIPAL_PASSWORD $POSTGRES_PRINCIPAL_FULL"
-echo ""
-kadmin.local -q "ktadd -k /keytab/postgres.keytab $POSTGRES_PRINCIPAL"
 
+echo "Adding $POSTGRES_PRINCIPAL principal"
+kadmin.local -q "delete_principal -force $POSTGRES_PRINCIPAL@$REALM"
+echo ""
+kadmin.local -q "addprinc -pw $POSTGRES_PRINCIPAL_PASSWORD $POSTGRES_PRINCIPAL@$REALM"
+echo ""
+kadmin.local -q "ktadd -k /keytab/postgres.keytab $POSTGRES_PRINCIPAL@$REALM"
+echo ""
 
 echo "==================================================================================="
 echo "==== Run the services ============================================================="

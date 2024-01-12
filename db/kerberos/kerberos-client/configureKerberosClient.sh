@@ -18,13 +18,13 @@ echo "==== /etc/krb5.conf ======================================================
 echo "==================================================================================="
 tee /etc/krb5.conf <<EOF
 [libdefaults]
-    default_realm = $REALM
+	default_realm = $REALM
 
 [realms]
-    $REALM = {
-        kdc = kdc-kadmin
-        admin_server = kdc-kadmin
-    }
+	$REALM = {
+		kdc = kdc.example.local
+		admin_server = kdc.example.local
+	}
 EOF
 echo ""
 
