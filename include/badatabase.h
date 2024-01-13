@@ -34,6 +34,7 @@ class BADataBase : public BABase
 public:
     BADataBase() : BABase() {}
     BADataBase(std::string connName) : BABase(connName) {}
+    ~BADataBase() {}
 
     bool isConnected() override;
 

@@ -13,15 +13,16 @@ CREATE OR REPLACE FUNCTION insert_sensors_with_update (
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
   p_pulselength INTEGER,
+  p_sensorstartpoint INTEGER DEFAULT NULL,
+  p_sensorendpoint INTEGER DEFAULT NULL,
+  p_sensorpointlength INTEGER DEFAULT NULL,
   p_sensorid INTEGER DEFAULT NULL,
   p_sensorfname VARCHAR(128) DEFAULT '',
-  p_comment VARCHAR(256) DEFAULT '',
-  p_sensorstartpoint INTEGER DEFAULT 0
+  p_comment VARCHAR(256) DEFAULT ''
 ) RETURNS INT AS $$
 DECLARE
     r_sensorid INT;
@@ -41,9 +42,9 @@ BEGIN
             freqstep = p_freqstep,
             freqstop = p_freqstop,
             sensorlength = p_sensorlength,
-            sensorpointlength = p_sensorpointlength,
             sensorstartpoint = p_sensorstartpoint,
             sensorendpoint = p_sensorendpoint,
+            sensorpointlength = p_sensorpointlength,
             cwatt = p_cwatt,
             adpgain = p_adpgain,
             pulsegain = p_pulsegain,
@@ -71,9 +72,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -91,9 +92,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
         p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -113,9 +114,9 @@ BEGIN
         freqstep = p_freqstep,
         freqstop = p_freqstop,
         sensorlength = p_sensorlength,
-        sensorpointlength = p_sensorpointlength,
         sensorstartpoint = p_sensorstartpoint,
         sensorendpoint = p_sensorendpoint,
+        sensorpointlength = p_sensorpointlength,
         cwatt = p_cwatt,
         adpgain = p_adpgain,
         pulsegain = p_pulsegain,
@@ -144,6 +145,8 @@ BEGIN
         p_freqstep => s.freqstep,
         p_freqstop => s.freqstop,
         p_sensorlength => s.sensorlength,
+        p_sensorstartpoint => s.sensorstartpoint,
+        p_sensorendpoint => s.sensorendpoint,
         p_sensorpointlength => s.sensorpointlength,
         p_cwatt => s.cwatt,
         p_adpgain => s.adpgain,
@@ -151,8 +154,7 @@ BEGIN
         p_pulselength => s.pulselength,
         p_sensorid => s.sensorid,
         p_sensorfname => s.sensorfname,
-        p_comment => s.comment,
-        p_sensorstartpoint => s.sensorstartpoint
+        p_comment => s.comment
     ) INTO r_sensorid;
     RETURN r_sensorid;
 END;
@@ -174,15 +176,16 @@ CREATE OR REPLACE FUNCTION insert_sensors_without_update(
   p_freqstep DOUBLE PRECISION,
   p_freqstop DOUBLE PRECISION,
   p_sensorlength INTEGER,
-  p_sensorpointlength INTEGER,
   p_cwatt INTEGER,
   p_adpgain INTEGER,
   p_pulsegain INTEGER,
   p_pulselength INTEGER,
+  p_sensorstartpoint INTEGER DEFAULT NULL,
+  p_sensorendpoint INTEGER DEFAULT NULL,
+  p_sensorpointlength INTEGER DEFAULT NULL,
   p_sensorid INTEGER DEFAULT NULL,
   p_sensorfname VARCHAR(128) DEFAULT '',
-  p_comment VARCHAR(256) DEFAULT '',
-  p_sensorstartpoint INTEGER DEFAULT 0
+  p_comment VARCHAR(256) DEFAULT ''
 ) RETURNS INT AS $$
 DECLARE
     r_sensorid INT;
@@ -207,9 +210,9 @@ BEGIN
         freqstep,
         freqstop,
         sensorlength,
-        sensorpointlength,
         sensorstartpoint,
         sensorendpoint,
+        sensorpointlength,
         cwatt,
         adpgain,
         pulsegain,
@@ -227,9 +230,9 @@ BEGIN
         p_freqstep,
         p_freqstop,
         p_sensorlength,
-        p_sensorpointlength,
         p_sensorstartpoint,
         p_sensorendpoint,
+        p_sensorpointlength,
         p_cwatt,
         p_adpgain,
         p_pulsegain,
@@ -261,6 +264,8 @@ BEGIN
         p_freqstep => s.freqstep,
         p_freqstop => s.freqstop,
         p_sensorlength => s.sensorlength,
+        p_sensorstartpoint => s.sensorstartpoint,
+        p_sensorendpoint => s.sensorendpoint,
         p_sensorpointlength => s.sensorpointlength,
         p_cwatt => s.cwatt,
         p_adpgain => s.adpgain,
@@ -268,8 +273,7 @@ BEGIN
         p_pulselength => s.pulselength,
         p_sensorid => s.sensorid,
         p_sensorfname => s.sensorfname,
-        p_comment => s.comment,
-        p_sensorstartpoint => s.sensorstartpoint
+        p_comment => s.comment
     ) INTO r_sensorid;
     RETURN r_sensorid;
 END;

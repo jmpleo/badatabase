@@ -1,3 +1,0 @@
-#pragma once
-
-constexpr const char*  _DEFAULT_MAINSQL_PATH= "@__MAINSQL_PATH@";
