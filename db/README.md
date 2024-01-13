@@ -84,6 +84,8 @@ CLIENT_PRINCIPAL_PASSWORD=badatabase
 docker-compose up -d primary kdc backup replica
 ```
 
+> Перед этим не забудьте удалить сконфигурированные старые сервисы (если такие создавались) командой `docker-compose down -v`
+
 чтобы проверить аутентификацию запустите клиент сервис:
 
 ```bash
@@ -100,7 +102,7 @@ pipenv run python3 fill.py -H localhost -P 5454 -D badatabase -U badatabase -W b
 
 > Если выбран метод аутентификации через kerberos то сначала нужно скопировать файл `badatabase.keytab` на хост машину, скопировать `kerberos/krb5.conf` в `etc/krb5.conf` и получить билет: `kinit -k -t badatabase.keytab badatabase`
 
-## Отчет: Построение защищенных СУБД
+## Отчет: Построение защищенных СУБД  
 
 ### Описание предметной области
 
