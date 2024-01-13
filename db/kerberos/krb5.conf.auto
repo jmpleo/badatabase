@@ -3,6 +3,8 @@
 
 [realms]
 	BADATABASE.LOCAL = {
+		kdc_ports = 88,750
+		kadmind_port = 749
 		kdc = kdc.badatabase.local
 		admin_server = kdc.badatabase.local
 	}
