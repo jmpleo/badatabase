@@ -1,27 +1,34 @@
 ## Quick start
 
-Чтобы настроить master-сервер измените `primary/primary.env`:
+Настройте master-сервер
+
+**primary/primary.env**
 
 ```bash
 POSTGRES_DB=badatabase
 POSTGRES_USER=badatabase
 POSTGRES_PASSWORD=badatabase
-POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
-POSTGRES_HOST_AUTH_METHOD="           scram-sha-256
+#kerberos auth
+#POSTGRES_HOST_AUTH_METHOD="            gss include_realm=0 krb_realm=BADATABASE.LOCAL
+POSTGRES_HOST_AUTH_METHOD="            scram-sha-256
 host       replication  all 0.0.0.0/0  md5
 hostssl    all          all all        cert
-hostgssenc all          all all        gss include_realm=0 krb_realm=example.local
+hostgssenc all          all all        gss include_realm=0 krb_realm=BADATABASE.LOCAL
 "
 ```
 
-Чтобы настроить slave-сервер измените `replica/replica.env`
+Настройте окуружение slave-сервера
+
+**replica/replica.env**
 
 ```bash 
 PGUSER=replicator
 PGPASSWORD=replicator
 ```
 
-Чтобы настроить backup-сервиc измените `backup/backup.env`
+Настройте окуружение backup-сервиcа
+
+**backup/backup.env**
 
 ```bash
 PGUSER=badatabase
@@ -30,11 +37,68 @@ PGPASSWORD=badatabase
 
 > PGUSER и PGPASSWORD используются для аутентификации на сервере при использовании утилиты `pg_basebackup` 
 
-Запустите сервисы используя `docker-compose`:
+Запустите
 
 ```bash
-docker-compose up -d
+docker-compose up -d primary backup replica 
 ```
+
+### Kerberos auth
+
+Если нужно использовать аутентификацию через kerberos, то поменяйте метод аутентификации:
+
+**primary/primary.env**
+
+```bash
+POSTGRES_DB=badatabase
+POSTGRES_USER=badatabase
+POSTGRES_PASSWORD=badatabase
+#POSTGRES_HOST_AUTH_METHOD="            scram-sha-256
+POSTGRES_HOST_AUTH_METHOD="            gss include_realm=0 krb_realm=BADATABASE.LOCAL
+host       replication  all 0.0.0.0/0  md5
+hostssl    all          all all        cert
+hostgssenc all          all all        gss include_realm=0 krb_realm=BADATABASE.LOCAL
+"
+```
+
+Настройте kerberos окуружение
+
+**kerberos/kerberos.env**
+
+```bash
+REALM=BADATABASE.LOCAL
+SUPPORTED_ENCRYPTION_TYPES=aes256-cts-hmac-sha1-96:normal
+KADMIN_PRINCIPAL=kadmin/admin
+KADMIN_PASSWORD=MITiys4K5
+POSTGRES_PRINCIPAL_PASSWORD=postgres
+POSTGRES_PRIMARY=postgres
+KDC_HOSTNAME=kdc.badatabase.local
+POSTGRES_HOSTNAME=primary.badatabase.local
+CLIENT_PRINCIPAL=badatabase
+CLIENT_PRINCIPAL_PASSWORD=badatabase
+```
+
+и запустите
+
+```bash
+docker-compose up -d primary kdc backup replica
+```
+
+чтобы проверить аутентификацию запустите клиент сервис:
+
+```bash
+docker-compose up client
+```
+
+### Test data fill
+
+Заполните БД тестовыми данными:
+
+```bash
+pipenv run python3 fill.py -H localhost -P 5454 -D badatabase -U badatabase -W badatabase --devices 1 --sensors 5 --sweeps 100
+```
+
+> Если выбран метод аутентификации через kerberos то сначала нужно скопировать файл `badatabase.keytab` на хост машину, скопировать `kerberos/krb5.conf` в `etc/krb5.conf` и получить билет: `kinit -k -t badatabase.keytab badatabase`
 
 ## Отчет: Построение защищенных СУБД
 
@@ -457,5 +521,177 @@ postgres
 
 ### Внешняя аутентификация
 
-Реализуем внешнюю аутентификацию через kerberos 
+Реализуем внешнюю аутентификацию через kerberos. Для этого добавим строку соединений `hostgssenc all all all gss include_realm=0 krb_realm=BADATABASE.LOCAL`в `pg_hba.conf` из виртуального окружения 
+
+**primary/primary.env**
+
+```bash
+POSTGRES_DB=badatabase
+POSTGRES_USER=badatabase
+POSTGRES_PASSWORD=badatabase
+POSTGRES_HOST_AUTH_METHOD="            gss include_realm=0 krb_realm=BADATABASE.LOCAL
+host       replication  all 0.0.0.0/0  md5
+hostssl    all          all all        cert
+hostgssenc all          all all        gss include_realm=0 krb_realm=BADATABASE.LOCAL
+"
+```
+
+Добавим сервисы `KDC` и клиента, через который будем тестировать аутентификацию:
+
+```yaml
+kdc:
+    container_name: kdc
+    build: ./kerberos/kdc
+    env_file: ./kerberos/kerberos.env
+    volumes:
+      - /dev/urandom:/dev/random
+      - client-keytab:/client-keytab
+      - postgres-keytab:/postgres-keytab
+      - ./kerberos/krb5.conf:/etc/krb5.conf
+    networks:
+      - realm-network
+    hostname: kdc.badatabase.local
+
+  client:
+    container_name: client
+    build: ./kerberos/client
+    env_file: ./kerberos/kerberos.env
+    depends_on:
+      - kdc
+    volumes:
+      - client-keytab:/keytab
+      - ./kerberos/krb5.conf:/etc/krb5.conf
+    networks:
+      - realm-network
+    hostname: client.badatabase.local
+```
+
+Для этих сервисов необходимо настроить виртуальное окружение `kerberos/kerberos.env`:
+
+```bash
+REALM=BADATABASE.LOCAL
+SUPPORTED_ENCRYPTION_TYPES=aes256-cts-hmac-sha1-96:normal
+KADMIN_PRINCIPAL=kadmin/admin
+KADMIN_PASSWORD=MITiys4K5
+POSTGRES_PRINCIPAL_PASSWORD=postgres
+POSTGRES_PRIMARY=postgres
+KDC_HOSTNAME=kdc.badatabase.local
+POSTGRES_HOSTNAME=primary.badatabase.local
+CLIENT_PRINCIPAL=badatabase
+CLIENT_PRINCIPAL_PASSWORD=badatabase
+```
+
+При инициализации `kdc` будут созданы принципалы `postgres/primary.badatabas.local` для сервера `primary` и `badatabase` для аутентификации пользователя `badatabase`. Для них будут созданы файлы `keytab` в соответствующих монтируемых папках:
+
+**kerberos/kdc/init-script.sh**
+
+```bash
+kadmin.local -q "delete_principal -force $POSTGRES_PRINCIPAL@$REALM"
+kadmin.local -q "addprinc -pw $POSTGRES_PRINCIPAL_PASSWORD $POSTGRES_PRINCIPAL@$REALM"
+kadmin.local -q "ktadd -k /postgres-keytab/postgres.keytab -norandkey $POSTGRES_PRINCIPAL@$REALM"
+
+
+kadmin.local -q "delete_principal -force $CLIENT_PRINCIPAL@$REALM"
+kadmin.local -q "addprinc -pw $CLIENT_PRINCIPAL_PASSWORD $CLIENT_PRINCIPAL@$REALM"
+kadmin.local -q "ktadd -k /client-keytab/$CLIENT_PRINCIPAL.keytab -norandkey $CLIENT_PRINCIPAL@$REALM"
+```
+
+Добавим монтируемые папки с `keytab` в соответствующие сервисы `primary` и `client` и укажем `postgres` путь до `postgres.keytab`:
+
+**docker-compose.yml** 
+
+```yaml
+primary:
+  ...
+  volumes:
+    - postgres-keytab:/keytab
+  ...
+  command: |
+    postgres
+    -c krb_server_keyfile='/keytab/postgres.keytab'
+  ...
+
+kdc:
+  ...
+  volumes:
+    - client-keytab:/client-keytab
+    - postgres-keytab:/postgres-keytab
+  ...
+client:
+  ...
+  volumes:
+    - client-keytab:/keytab
+  ...
+```
+
+При инициализации, клиент получает билет и ожидает аутентификации на сервере `primary`:
+
+**client/init-script.sh**
+
+```bash
+kinit -k -t "/keytab/$CLIENT_PRINCIPAL.keytab" $CLIENT_PRINCIPAL
+
+until pg_isready -U badatabase -d badatabase -h primary.badatabase.local; do
+    echo 'Waiting auth...'
+    sleep 1
+done
+
+echo 'Kerberos authentication success'
+```
+
+### Соединение по TLS
+
+Для соединения по TLS сгенерируем сертификаты:
+
+```bash
+cd ssl
+./gen.sh
+```
+
+Добавим строку защищенных соединений:
+
+**primary/primary.env**
+
+```bash
+POSTGRES_DB=badatabase
+POSTGRES_USER=badatabase
+POSTGRES_PASSWORD=badatabase
+#POSTGRES_HOST_AUTH_METHOD="            gss
+POSTGRES_HOST_AUTH_METHOD="            scram-sha-256
+host       replication  all 0.0.0.0/0  md5
+hostssl    all          all all        cert
+hostgssenc all          all all        gss include_realm=0 krb_realm=BADATABASE.LOCAL
+"
+```
+
+и установим соответствующие конфигурации для `postgres.conf`:
+
+**docker-compose.yml**
+
+```yaml
+...
+primary:
+  ...
+  command: |
+    postgres
+    -c ssl=on
+    -c ssl_cert_file='/ssl/postgres.crt'
+    -c ssl_key_file='/ssl/postgres.key'
+    ...
+```
+
+Пробуем аутентифицироваться с хостовой машины:
+
+```bash
+psql -U badatabase -d badatabase -h localhost -p 5454
+```
+
+```
+Password for user badatabase: 
+psql (15.5 (Debian 15.5-0+deb12u1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
+Type "help" for help.
+
+badatabase=# 
+```
 

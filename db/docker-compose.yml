@@ -32,7 +32,7 @@ services:
       -c max_wal_senders=10
       -c max_replication_slots=10
       -c hot_standby_feedback=on
-      -c ssl=off
+      -c ssl=on
       -c ssl_cert_file='/ssl/postgres.crt'
       -c ssl_key_file='/ssl/postgres.key'
       -c krb_server_keyfile='/keytab/postgres.keytab'
