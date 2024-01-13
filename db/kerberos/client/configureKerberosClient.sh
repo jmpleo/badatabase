@@ -3,6 +3,7 @@ echo "==========================================================================
 echo "==== Kerberos Client =============================================================="
 echo "==================================================================================="
 KADMIN_PRINCIPAL_FULL=$KADMIN_PRINCIPAL@$REALM
+POSTGRES_PRINCIPAL=$POSTGRES_PRIMARY/$PRIMARY_HOSTNAME
 
 echo "REALM: $REALM"
 echo "KADMIN_PRINCIPAL_FULL: $KADMIN_PRINCIPAL_FULL"
@@ -28,7 +29,7 @@ tee /etc/krb5.conf <<EOF
 EOF
 echo ""
 
-kinit -k -t /keytab/$POSTGRES_PRINCIPAL.keytab $POSTGRES_PRINCIPAL
+kinit -k -t "/keytab/$CLIENT_PRINCIPAL.keytab" $CLIENT_PRINCIPAL
 
 echo "==================================================================================="
 echo "==== Testing ======================================================================"

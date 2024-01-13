@@ -2,7 +2,6 @@ version: '3.9'
 
 x-postgres-common:
   &postgres
-  user: postgres
   restart: always
   healthcheck:
     test: 'pg_isready -U badatabase --dbname=badatabase'
@@ -12,6 +11,7 @@ x-postgres-common:
 
 services:
   primary:
+    container_name: primary
     <<: *postgres
     build:
       context: .
@@ -22,7 +22,8 @@ services:
       - ./primary/primary.env
       - ./kerberos/kerberos.env
     volumes:
-      - keytab:/keytab
+      - ./kerberos/krb5.conf:/etc/krb5.conf
+      - postgres-keytab:/keytab
       - primary_pgdata:/var/lib/postgresql/data
     command: |
       postgres
@@ -31,10 +32,10 @@ services:
       -c max_wal_senders=10
       -c max_replication_slots=10
       -c hot_standby_feedback=on
-      -c ssl=on
+      -c ssl=off
       -c ssl_cert_file='/ssl/postgres.crt'
       -c ssl_key_file='/ssl/postgres.key'
-      -c krb_server_keyfile='/keytab/badatabase.keytab'
+      -c krb_server_keyfile='/keytab/postgres.keytab'
     depends_on:
       - kdc
     networks:
@@ -42,6 +43,7 @@ services:
     hostname: primary.badatabase.local
 
   replica:
+    container_name: replica
     <<: *postgres
     build: ./replica
     ports:
@@ -57,6 +59,7 @@ services:
     hostname: replica.badatabase.local
 
   backup:
+    container_name: backup
     build: ./backup
     env_file: ./backup/backup.env
     volumes:
@@ -74,23 +77,28 @@ services:
     hostname: backup.badatabase.local
 
   kdc:
+    container_name: kdc
     build: ./kerberos/kdc
     env_file: ./kerberos/kerberos.env
     volumes:
       # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
       - /dev/urandom:/dev/random
-      - keytab:/keytab
+      - client-keytab:/client-keytab
+      - postgres-keytab:/postgres-keytab
+      - ./kerberos/krb5.conf:/etc/krb5.conf
     networks:
       - realm-network
     hostname: kdc.badatabase.local
 
   client:
+    container_name: client
     build: ./kerberos/client
     env_file: ./kerberos/kerberos.env
     depends_on:
       - kdc
     volumes:
-      - keytab:/keytab
+      - client-keytab:/keytab
+      - ./kerberos/krb5.conf:/etc/krb5.conf
     networks:
       - realm-network
     hostname: client.badatabase.local
@@ -98,7 +106,8 @@ services:
 volumes:
   primary_pgdata:
   replica_pgdata:
-  keytab:
+  postgres-keytab:
+  client-keytab:
   backup:
 
 networks:

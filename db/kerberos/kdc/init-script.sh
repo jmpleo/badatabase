@@ -3,6 +3,7 @@ echo "==========================================================================
 echo "==== Kerberos KDC and Kadmin ======================================================"
 echo "==================================================================================="
 KADMIN_PRINCIPAL_FULL=$KADMIN_PRINCIPAL@$REALM
+POSTGRES_PRINCIPAL=postgres/$POSTGRES_HOSTNAME
 
 echo "REALM: $REALM"
 echo "KADMIN_PRINCIPAL_FULL: $KADMIN_PRINCIPAL_FULL"
@@ -83,8 +84,20 @@ kadmin.local -q "delete_principal -force $POSTGRES_PRINCIPAL@$REALM"
 echo ""
 kadmin.local -q "addprinc -pw $POSTGRES_PRINCIPAL_PASSWORD $POSTGRES_PRINCIPAL@$REALM"
 echo ""
-kadmin.local -q "ktadd -k /keytab/$POSTGRES_PRINCIPAL.keytab -norandkey $POSTGRES_PRINCIPAL@$REALM"
+kadmin.local -q "ktadd -k /postgres-keytab/postgres.keytab -norandkey $POSTGRES_PRINCIPAL@$REALM"
 echo ""
+
+
+echo "Adding $CLIENT_PRINCIPAL principal"
+kadmin.local -q "delete_principal -force $CLIENT_PRINCIPAL@$REALM"
+echo ""
+kadmin.local -q "addprinc -pw $CLIENT_PRINCIPAL_PASSWORD $CLIENT_PRINCIPAL@$REALM"
+echo ""
+kadmin.local -q "ktadd -k /client-keytab/$CLIENT_PRINCIPAL.keytab -norandkey $CLIENT_PRINCIPAL@$REALM"
+echo ""
+
+chmod o+r /client-keytab/*
+chmod o+r /postgres-keytab/*
 
 echo "==================================================================================="
 echo "==== Run the services ============================================================="
